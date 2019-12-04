@@ -43,8 +43,7 @@ func main() {
 	fmt.Printf("Fuel needs for all modules: %v\n", do())
 }
 
-func do() int {
-	inputNumbers := loadInputData()
+func calculateFuelNeeds(inputNumbers []int) []int {
 	results := []int{}
 
 	for _, v := range inputNumbers {
@@ -55,11 +54,23 @@ func do() int {
 		results = append(results, v)
 	}
 
+	return results
+}
+
+func sumInts(ints []int) int {
 	sum := 0
 
-	for _, v := range results {
+	for _, v := range ints {
 		sum += v
 	}
+
+	return sum
+}
+
+func do() int {
+	inputNumbers := loadInputData()
+	fuelNeeds := calculateFuelNeeds(inputNumbers)
+	sum := sumInts(fuelNeeds)
 
 	return sum
 }
