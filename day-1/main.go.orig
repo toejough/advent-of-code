@@ -1,0 +1,23 @@
+package main
+
+import (
+	"fmt"
+	"io/ioutil"
+	"log"
+)
+
+func main() {
+	fmt.Println("Load input data")
+
+	content, err := ioutil.ReadFile("input.txt")
+	if err != nil {
+		log.Fatalln("Unable to read input.txt")
+	}
+
+	log.Println(content)
+	fmt.Println("For each input...")
+	fmt.Println("  Divide by 3")
+	fmt.Println("  Round down")
+	fmt.Println("  Subtract 2")
+	fmt.Println("Sum the individual results")
+}
