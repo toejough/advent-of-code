@@ -52,6 +52,10 @@ func loadInputData() []int {
 }
 
 func main() {
+	do()
+}
+
+func do() int {
 	inputNumbers := loadInputData()
 
 	fmt.Println("For each input...")
@@ -88,4 +92,6 @@ func main() {
 	}
 
 	log.Println(sum)
+
+	return sum
 }
