@@ -14,6 +14,7 @@ and ecod golangci-lint run --disable typecheck ./...
 and ecod go test -failfast -timeout 1s -v ./...
 and ecod 'cd day-1/part-1 && go run .'
 and ecod 'cd day-1/part-2 && go run .'
+and ecod 'cd day-2/part-1 && go run .'
 set rc $status
 echo "(last rc: $status)"
 exit $status
