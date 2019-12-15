@@ -16,6 +16,7 @@ and ecod 'cd day-1/part-1 && go run .'
 and ecod 'cd day-1/part-2 && go run .'
 and ecod 'cd day-2/part-1 && go run .'
 and ecod 'cd day-2/part-2 && go run .'
+and ecod 'cd day-3/part-1 && go run .'
 set rc $status
 echo "(last rc: $status)"
 exit $status
