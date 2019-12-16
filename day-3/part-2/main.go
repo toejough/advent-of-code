@@ -89,19 +89,19 @@ func toInstructions(wires [2]string) (wireInstructions [2]instructionList) {
 }
 
 type point struct {
-	x, y int
+	x, y, totalDistance int
 }
 
 func pointFromInstructionAndLastPoint(i instruction, lastPoint point) point {
 	switch i.direction {
 	case Right:
-		return point{x: lastPoint.x + i.distance, y: lastPoint.y}
+		return point{x: lastPoint.x + i.distance, y: lastPoint.y, totalDistance: lastPoint.totalDistance + i.distance}
 	case Left:
-		return point{x: lastPoint.x - i.distance, y: lastPoint.y}
+		return point{x: lastPoint.x - i.distance, y: lastPoint.y, totalDistance: lastPoint.totalDistance + i.distance}
 	case Up:
-		return point{x: lastPoint.x, y: lastPoint.y + i.distance}
+		return point{x: lastPoint.x, y: lastPoint.y + i.distance, totalDistance: lastPoint.totalDistance + i.distance}
 	case Down:
-		return point{x: lastPoint.x, y: lastPoint.y - i.distance}
+		return point{x: lastPoint.x, y: lastPoint.y - i.distance, totalDistance: lastPoint.totalDistance + i.distance}
 	}
 
 	log.Fatalf("unknown direction: %v", i.direction)
@@ -112,7 +112,7 @@ type pointList []point
 
 func instructionListToPoints(list instructionList) pointList {
 	thesePoints := make(pointList, len(list)+1)
-	thesePoints[0] = point{x: 0, y: 0}
+	thesePoints[0] = point{x: 0, y: 0, totalDistance: 0}
 	lastPoint := thesePoints[0]
 
 	for j, thisInstruction := range list {
@@ -160,7 +160,7 @@ func toLineSegments(wirePoints [2]pointList) (wireSegments [2]segmentList) {
 }
 
 type intersection struct {
-	x, y int
+	x, y, distance int
 }
 
 type intersectionList []intersection
@@ -227,11 +227,27 @@ func toIntersections(wireSegments [2]segmentList) (theseIntersections intersecti
 				continue
 			}
 
-			theseIntersections = append(theseIntersections, intersection{x: x, y: y})
+			iFirstPoint := iSegment.a
+			if iSegment.b.totalDistance < iFirstPoint.totalDistance {
+				iFirstPoint = iSegment.b
+			}
+
+			iDistance := iFirstPoint.totalDistance + abs(iFirstPoint.x-x) + abs(iFirstPoint.y-y)
+
+			jFirstPoint := jSegment.a
+			if jSegment.b.totalDistance < jFirstPoint.totalDistance {
+				jFirstPoint = jSegment.b
+			}
+
+			jDistance := jFirstPoint.totalDistance + abs(jFirstPoint.x-x) + abs(jFirstPoint.y-y)
+
+			comboDistance := iDistance + jDistance
+
+			theseIntersections = append(theseIntersections, intersection{x: x, y: y, distance: comboDistance})
 		}
 	}
 
-	return
+	return theseIntersections
 }
 
 func abs(v int) int {
@@ -245,7 +261,7 @@ func abs(v int) int {
 func toDistances(intersections intersectionList) []int {
 	distances := make([]int, len(intersections))
 	for i, thisIntersection := range intersections {
-		distances[i] = abs(thisIntersection.x) + abs(thisIntersection.y)
+		distances[i] = thisIntersection.distance
 	}
 
 	return distances
