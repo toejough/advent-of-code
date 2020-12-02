@@ -1,23 +1,19 @@
 #! /usr/bin/env fish
 
-function ecod
+function echo-do
     echo $argv
-    fish -c "eval $argv"
+    eval $argv
     set rc $status
     return $rc
 end
 
-ecod goimports -w .
-and ecod gofumpt -w .
-and ecod golangci-lint run --no-config --disable-all --enable typecheck ./...
-and ecod golangci-lint run --disable typecheck ./...
-and ecod go test -failfast -timeout 1s -v ./...
-and ecod 'cd day-1/part-1 && go run .'
-and ecod 'cd day-1/part-2 && go run .'
-and ecod 'cd day-2/part-1 && go run .'
-and ecod 'cd day-2/part-2 && go run .'
-and ecod 'cd day-3/part-1 && go run .'
-and ecod 'cd day-3/part-2 && go run .'
+echo-do goimports -w .
+and go mod tidy
+and echo-do gofumpt -w .
+and echo-do golangci-lint run --no-config --disable-all --enable typecheck ./...
+and echo-do golangci-lint run --disable typecheck ./...
+and echo-do go test -failfast -timeout 1s -v ./...
+and echo-do go run .
 set rc $status
 echo "(last rc: $status)"
 exit $status
