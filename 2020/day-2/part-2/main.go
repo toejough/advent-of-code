@@ -28,8 +28,8 @@ func skipEmpty(items []string) (nonEmpty []string) {
 }
 
 type pwSpec struct {
-	minLimit int
-	maxLimit int
+	pos1     int
+	pos2     int
 	letter   rune
 	password string
 }
@@ -69,30 +69,22 @@ func allToStructs(items []string) (allStructs []pwSpec, err error) {
 		letter := rune(letterSpec[0])
 		allStructs = append(
 			allStructs,
-			pwSpec{minLimit: minLimit, maxLimit: maxLimit, letter: letter, password: password},
+			pwSpec{pos1: minLimit, pos2: maxLimit, letter: letter, password: password},
 		)
 	}
 	return allStructs, nil
 }
 
-func countLetters(r rune, s string) (count int) {
-	for _, letter := range s {
-		if rune(letter) == r {
-			count++
-		}
-	}
-	return count
-}
-
 func isValid(spec pwSpec) (valid bool) {
-	numLetters := countLetters(spec.letter, spec.password)
-	if numLetters < spec.minLimit {
+	inFirst := len(spec.password) >= spec.pos1 && rune(spec.password[spec.pos1-1]) == spec.letter
+	inSecond := len(spec.password) >= spec.pos2 && rune(spec.password[spec.pos2-1]) == spec.letter
+	if inFirst && inSecond {
 		return false
 	}
-	if numLetters > spec.maxLimit {
-		return false
+	if inFirst || inSecond {
+		return true
 	}
-	return true
+	return false
 }
 
 func skipInvalid(pwSpecs []pwSpec) (allValid []pwSpec) {
