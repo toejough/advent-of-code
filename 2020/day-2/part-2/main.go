@@ -42,22 +42,22 @@ func allToStructs(items []string) (allStructs []pwSpec, err error) {
 			return nil, errors.Errorf("Expected 3 parts, but got %v: %v", numParts, parts)
 		}
 
-		limitsSpec, letterSpec, password := parts[0], parts[1], parts[2]
+		positionsSpec, letterSpec, password := parts[0], parts[1], parts[2]
 
-		limits := strings.Split(limitsSpec, "-")
-		numLimits := len(limits)
-		if numLimits != 2 {
-			return nil, errors.Errorf("Expected 2 limits, but got %v: %v", numLimits, limits)
+		positions := strings.Split(positionsSpec, "-")
+		numPositions := len(positions)
+		if numPositions != 2 {
+			return nil, errors.Errorf("Expected 2 positions, but got %v: %v", numPositions, positions)
 		}
 
-		minLimitStr := limits[0]
-		minLimit, err := strconv.Atoi(minLimitStr)
+		minLimitStr := positions[0]
+		pos1, err := strconv.Atoi(minLimitStr)
 		if err != nil {
 			return nil, errors.Wrapf(err, "Converting minLimit '%v' from string to int", minLimitStr)
 		}
 
-		maxLimitStr := limits[1]
-		maxLimit, err := strconv.Atoi(maxLimitStr)
+		maxLimitStr := positions[1]
+		pos2, err := strconv.Atoi(maxLimitStr)
 		if err != nil {
 			return nil, errors.Wrapf(err, "Converting maxLimit '%v' from string to int", maxLimitStr)
 		}
@@ -69,7 +69,7 @@ func allToStructs(items []string) (allStructs []pwSpec, err error) {
 		letter := rune(letterSpec[0])
 		allStructs = append(
 			allStructs,
-			pwSpec{pos1: minLimit, pos2: maxLimit, letter: letter, password: password},
+			pwSpec{pos1: pos1, pos2: pos2, letter: letter, password: password},
 		)
 	}
 	return allStructs, nil
