@@ -46,8 +46,10 @@ func solve(input string) (output string, err error) {
 	if err != nil {
 		return "", errors.Wrap(err, "Converting input []string to []int")
 	}
-	for i, iItem := range intItems {
-		for _, jItem := range intItems[i:] {
+	iItems := intItems[:len(intItems)-1]
+	for i, iItem := range iItems {
+		jItems := intItems[i+1:]
+		for _, jItem := range jItems {
 			if iItem+jItem == 2020 {
 				output = strconv.Itoa(iItem * jItem)
 				return output, nil
