@@ -27,37 +27,94 @@ func skipEmpty(items []string) (nonEmpty []string) {
 	return
 }
 
-func allToInts(items []string) (allInts []int, err error) {
+type pwSpec struct {
+	minLimit int
+	maxLimit int
+	letter   rune
+	password string
+}
+
+func allToStructs(items []string) (allStructs []pwSpec, err error) {
 	for _, item := range items {
-		thisInt, err := strconv.Atoi(item)
-		if err != nil {
-			return nil, errors.Wrapf(err, "Converting '%v' from string to int", item)
+		parts := strings.Split(item, " ")
+		numParts := len(parts)
+		if numParts != 3 {
+			return nil, errors.Errorf("Expected 3 parts, but got %v: %v", numParts, parts)
 		}
-		allInts = append(allInts, thisInt)
+
+		limitsSpec, letterSpec, password := parts[0], parts[1], parts[2]
+
+		limits := strings.Split(limitsSpec, "-")
+		numLimits := len(limits)
+		if numLimits != 2 {
+			return nil, errors.Errorf("Expected 2 limits, but got %v: %v", numLimits, limits)
+		}
+
+		minLimitStr := limits[0]
+		minLimit, err := strconv.Atoi(minLimitStr)
+		if err != nil {
+			return nil, errors.Wrapf(err, "Converting minLimit '%v' from string to int", minLimitStr)
+		}
+
+		maxLimitStr := limits[1]
+		maxLimit, err := strconv.Atoi(maxLimitStr)
+		if err != nil {
+			return nil, errors.Wrapf(err, "Converting maxLimit '%v' from string to int", maxLimitStr)
+		}
+
+		numRunes := len(letterSpec)
+		if numRunes != 2 {
+			return nil, errors.Errorf("Expected 2 runes, but got %v: %v", numRunes, letterSpec)
+		}
+		letter := rune(letterSpec[0])
+		allStructs = append(
+			allStructs,
+			pwSpec{minLimit: minLimit, maxLimit: maxLimit, letter: letter, password: password},
+		)
 	}
-	return allInts, nil
+	return allStructs, nil
+}
+
+func countLetters(r rune, s string) (count int) {
+	for _, letter := range s {
+		if rune(letter) == r {
+			count++
+		}
+	}
+	return count
+}
+
+func isValid(spec pwSpec) (valid bool) {
+	numLetters := countLetters(spec.letter, spec.password)
+	if numLetters < spec.minLimit {
+		return false
+	}
+	if numLetters > spec.maxLimit {
+		return false
+	}
+	return true
+}
+
+func skipInvalid(pwSpecs []pwSpec) (allValid []pwSpec) {
+	for _, spec := range pwSpecs {
+		if isValid(spec) {
+			allValid = append(allValid, spec)
+		}
+	}
+	return
 }
 
 func solve(input string) (output string, err error) {
 	lines := strings.Split(input, "\n")
 	stripped := stripAll(lines)
 	nonEmpty := skipEmpty(stripped)
-	intItems, err := allToInts(nonEmpty)
+	structItems, err := allToStructs(nonEmpty)
 	if err != nil {
-		return "", errors.Wrap(err, "Converting input []string to []int")
+		return "", errors.Wrap(err, "Converting input []string to []pwSpec")
 	}
-	iItems := intItems[:len(intItems)-1]
-	for i, iItem := range iItems {
-		jItems := intItems[i+1:]
-		for _, jItem := range jItems {
-			if iItem+jItem == 2020 {
-				output = strconv.Itoa(iItem * jItem)
-				return output, nil
-			}
-		}
-	}
-	err = errors.New("Never found two values that summed to 2020")
-	return "", err
+
+	validStructs := skipInvalid(structItems)
+	return strconv.Itoa(len(validStructs)), nil
 }
 
 func main() {
