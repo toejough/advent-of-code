@@ -1,17 +1,24 @@
 package main
 
 import (
-	"io/ioutil"
 	"testing"
 )
 
 func TestExample(t *testing.T) {
 	input := `
-        1-3 a: abcde
-        1-3 b: cdefg
-        2-9 c: ccccccccc
+        ..##.......
+        #...#...#..
+        .#....#..#.
+        ..#.#...#.#
+        .#...##..#.
+        ..#.##.....
+        .#.#.#....#
+        .#........#
+        #.##...#...
+        #...##....#
+        .#..#...#.#
     `
-	expectedOutput := "2"
+	expectedOutput := "7"
 
 	actualOutput, err := solve(input)
 	if err != nil {
@@ -27,24 +34,24 @@ func TestExample(t *testing.T) {
 	}
 }
 
-func TestSolution(t *testing.T) {
-	input, err := ioutil.ReadFile("input.txt")
-	if err != nil {
-		t.Fatalf("Error: %v", err)
-	}
+// func TestSolution(t *testing.T) {
+//    input, err := ioutil.ReadFile("input.txt")
+//    if err != nil {
+//        t.Fatalf("Error: %v", err)
+//    }
 
-	expectedOutput := "638"
+//    expectedOutput := "638"
 
-	actualOutput, err := solve(string(input))
-	if err != nil {
-		t.Fatalf("Expected no errors, but got '%v'\n", err)
-	}
+//    actualOutput, err := solve(string(input))
+//    if err != nil {
+//        t.Fatalf("Expected no errors, but got '%v'\n", err)
+//    }
 
-	if expectedOutput != actualOutput {
-		t.Fatalf(
-			"Expected output was '%v', but we got '%v' instead\n",
-			expectedOutput,
-			actualOutput,
-		)
-	}
-}
+//    if expectedOutput != actualOutput {
+//        t.Fatalf(
+//            "Expected output was '%v', but we got '%v' instead\n",
+//            expectedOutput,
+//            actualOutput,
+//        )
+//    }
+//}
