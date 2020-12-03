@@ -21,10 +21,7 @@ func TestExample(t *testing.T) {
     `
 	expectedOutput := "336"
 
-	actualOutput, err := solve(input)
-	if err != nil {
-		t.Fatalf("Expected no errors, but got '%v'\n", err)
-	}
+	actualOutput := solve(input)
 
 	if expectedOutput != actualOutput {
 		t.Fatalf(
@@ -43,10 +40,7 @@ func TestSolution(t *testing.T) {
 
 	expectedOutput := "7540141059"
 
-	actualOutput, err := solve(string(input))
-	if err != nil {
-		t.Fatalf("Expected no errors, but got '%v'\n", err)
-	}
+	actualOutput := solve(string(input))
 
 	if expectedOutput != actualOutput {
 		t.Fatalf(
