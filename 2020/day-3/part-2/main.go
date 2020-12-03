@@ -29,19 +29,84 @@ func solve(input string) (output string, err error) {
 	lines := strings.Split(input, "\n")
 	stripped := stripAll(lines)
 	nonEmpty := skipEmpty(stripped)
-	x := 0
-	y := 0
-	trees := 0
-	for y < len(nonEmpty) {
-		// log.Printf("line: '%v', x: '%v', y: '%v'\n", nonEmpty[x], x, y)
-		if nonEmpty[y][x] == '#' {
-			trees++
+	cumulative := 1
+
+	{
+		x := 0
+		y := 0
+		trees := 0
+		for y < len(nonEmpty) {
+			// log.Printf("line: '%v', x: '%v', y: '%v'\n", nonEmpty[x], x, y)
+			if nonEmpty[y][x] == '#' {
+				trees++
+			}
+			x += 1
+			x %= len(nonEmpty[0])
+			y += 1
 		}
-		x += 3
-		x %= len(nonEmpty[0])
-		y += 1
+		cumulative *= trees
 	}
-	return strconv.Itoa(trees), nil
+	{
+		x := 0
+		y := 0
+		trees := 0
+		for y < len(nonEmpty) {
+			// log.Printf("line: '%v', x: '%v', y: '%v'\n", nonEmpty[x], x, y)
+			if nonEmpty[y][x] == '#' {
+				trees++
+			}
+			x += 3
+			x %= len(nonEmpty[0])
+			y += 1
+		}
+		cumulative *= trees
+	}
+	{
+		x := 0
+		y := 0
+		trees := 0
+		for y < len(nonEmpty) {
+			// log.Printf("line: '%v', x: '%v', y: '%v'\n", nonEmpty[x], x, y)
+			if nonEmpty[y][x] == '#' {
+				trees++
+			}
+			x += 5
+			x %= len(nonEmpty[0])
+			y += 1
+		}
+		cumulative *= trees
+	}
+	{
+		x := 0
+		y := 0
+		trees := 0
+		for y < len(nonEmpty) {
+			// log.Printf("line: '%v', x: '%v', y: '%v'\n", nonEmpty[x], x, y)
+			if nonEmpty[y][x] == '#' {
+				trees++
+			}
+			x += 7
+			x %= len(nonEmpty[0])
+			y += 1
+		}
+		cumulative *= trees
+	}
+	{
+		x := 0
+		y := 0
+		trees := 0
+		for y < len(nonEmpty) {
+			// log.Printf("line: '%v', x: '%v', y: '%v'\n", nonEmpty[x], x, y)
+			if nonEmpty[y][x] == '#' {
+				trees++
+			}
+			x += 1
+			x %= len(nonEmpty[0])
+			y += 2
+		}
+		cumulative *= trees
+	}
+	return strconv.Itoa(cumulative), nil
 }
 
 func main() {
