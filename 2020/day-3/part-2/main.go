@@ -51,11 +51,16 @@ func solve(input string) (output string, err error) {
 	nonEmpty := skipEmpty(stripped)
 	cumulative := 1
 
-	cumulative *= countTrees(nonEmpty, slope{x: 1, y: 1})
-	cumulative *= countTrees(nonEmpty, slope{x: 3, y: 1})
-	cumulative *= countTrees(nonEmpty, slope{x: 5, y: 1})
-	cumulative *= countTrees(nonEmpty, slope{x: 7, y: 1})
-	cumulative *= countTrees(nonEmpty, slope{x: 1, y: 2})
+	slopes := []slope{
+		{x: 1, y: 1},
+		{x: 3, y: 1},
+		{x: 5, y: 1},
+		{x: 7, y: 1},
+		{x: 1, y: 2},
+	}
+	for _, s := range slopes {
+		cumulative *= countTrees(nonEmpty, s)
+	}
 
 	return strconv.Itoa(cumulative), nil
 }
