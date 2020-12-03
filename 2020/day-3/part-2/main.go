@@ -25,87 +25,34 @@ func skipEmpty(items []string) (nonEmpty []string) {
 	return
 }
 
+func countTrees(treeMap []string, slopeX, slopeY int) (count int) {
+	x := 0
+	y := 0
+	trees := 0
+	for y < len(treeMap) {
+		// log.Printf("line: '%v', x: '%v', y: '%v'\n", nonEmpty[x], x, y)
+		if treeMap[y][x] == '#' {
+			trees++
+		}
+		x += slopeX
+		x %= len(treeMap[0])
+		y += slopeY
+	}
+	return trees
+}
+
 func solve(input string) (output string, err error) {
 	lines := strings.Split(input, "\n")
 	stripped := stripAll(lines)
 	nonEmpty := skipEmpty(stripped)
 	cumulative := 1
 
-	{
-		x := 0
-		y := 0
-		trees := 0
-		for y < len(nonEmpty) {
-			// log.Printf("line: '%v', x: '%v', y: '%v'\n", nonEmpty[x], x, y)
-			if nonEmpty[y][x] == '#' {
-				trees++
-			}
-			x += 1
-			x %= len(nonEmpty[0])
-			y += 1
-		}
-		cumulative *= trees
-	}
-	{
-		x := 0
-		y := 0
-		trees := 0
-		for y < len(nonEmpty) {
-			// log.Printf("line: '%v', x: '%v', y: '%v'\n", nonEmpty[x], x, y)
-			if nonEmpty[y][x] == '#' {
-				trees++
-			}
-			x += 3
-			x %= len(nonEmpty[0])
-			y += 1
-		}
-		cumulative *= trees
-	}
-	{
-		x := 0
-		y := 0
-		trees := 0
-		for y < len(nonEmpty) {
-			// log.Printf("line: '%v', x: '%v', y: '%v'\n", nonEmpty[x], x, y)
-			if nonEmpty[y][x] == '#' {
-				trees++
-			}
-			x += 5
-			x %= len(nonEmpty[0])
-			y += 1
-		}
-		cumulative *= trees
-	}
-	{
-		x := 0
-		y := 0
-		trees := 0
-		for y < len(nonEmpty) {
-			// log.Printf("line: '%v', x: '%v', y: '%v'\n", nonEmpty[x], x, y)
-			if nonEmpty[y][x] == '#' {
-				trees++
-			}
-			x += 7
-			x %= len(nonEmpty[0])
-			y += 1
-		}
-		cumulative *= trees
-	}
-	{
-		x := 0
-		y := 0
-		trees := 0
-		for y < len(nonEmpty) {
-			// log.Printf("line: '%v', x: '%v', y: '%v'\n", nonEmpty[x], x, y)
-			if nonEmpty[y][x] == '#' {
-				trees++
-			}
-			x += 1
-			x %= len(nonEmpty[0])
-			y += 2
-		}
-		cumulative *= trees
-	}
+	cumulative *= countTrees(nonEmpty, 1, 1)
+	cumulative *= countTrees(nonEmpty, 3, 1)
+	cumulative *= countTrees(nonEmpty, 5, 1)
+	cumulative *= countTrees(nonEmpty, 7, 1)
+	cumulative *= countTrees(nonEmpty, 1, 2)
+
 	return strconv.Itoa(cumulative), nil
 }
 
