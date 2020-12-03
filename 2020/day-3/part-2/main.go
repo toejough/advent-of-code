@@ -25,20 +25,24 @@ func skipEmpty(items []string) (nonEmpty []string) {
 	return
 }
 
-func countTrees(treeMap []string, slopeX, slopeY int) (count int) {
+func countTrees(treeMap []string, s slope) (count int) {
 	x := 0
 	y := 0
 	trees := 0
 	for y < len(treeMap) {
-		// log.Printf("line: '%v', x: '%v', y: '%v'\n", nonEmpty[x], x, y)
 		if treeMap[y][x] == '#' {
 			trees++
 		}
-		x += slopeX
+		x += s.x
 		x %= len(treeMap[0])
-		y += slopeY
+		y += s.y
 	}
 	return trees
+}
+
+type slope struct {
+	x int
+	y int
 }
 
 func solve(input string) (output string, err error) {
@@ -47,11 +51,11 @@ func solve(input string) (output string, err error) {
 	nonEmpty := skipEmpty(stripped)
 	cumulative := 1
 
-	cumulative *= countTrees(nonEmpty, 1, 1)
-	cumulative *= countTrees(nonEmpty, 3, 1)
-	cumulative *= countTrees(nonEmpty, 5, 1)
-	cumulative *= countTrees(nonEmpty, 7, 1)
-	cumulative *= countTrees(nonEmpty, 1, 2)
+	cumulative *= countTrees(nonEmpty, slope{x: 1, y: 1})
+	cumulative *= countTrees(nonEmpty, slope{x: 3, y: 1})
+	cumulative *= countTrees(nonEmpty, slope{x: 5, y: 1})
+	cumulative *= countTrees(nonEmpty, slope{x: 7, y: 1})
+	cumulative *= countTrees(nonEmpty, slope{x: 1, y: 2})
 
 	return strconv.Itoa(cumulative), nil
 }
