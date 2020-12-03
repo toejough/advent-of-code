@@ -6,8 +6,6 @@ import (
 	"log"
 	"strconv"
 	"strings"
-
-	"github.com/pkg/errors"
 )
 
 func stripAll(items []string) (allStripped []string) {
@@ -27,86 +25,23 @@ func skipEmpty(items []string) (nonEmpty []string) {
 	return
 }
 
-type pwSpec struct {
-	pos1     int
-	pos2     int
-	letter   rune
-	password string
-}
-
-func allToStructs(items []string) (allStructs []pwSpec, err error) {
-	for _, item := range items {
-		parts := strings.Split(item, " ")
-		numParts := len(parts)
-		if numParts != 3 {
-			return nil, errors.Errorf("Expected 3 parts, but got %v: %v", numParts, parts)
-		}
-
-		positionsSpec, letterSpec, password := parts[0], parts[1], parts[2]
-
-		positions := strings.Split(positionsSpec, "-")
-		numPositions := len(positions)
-		if numPositions != 2 {
-			return nil, errors.Errorf("Expected 2 positions, but got %v: %v", numPositions, positions)
-		}
-
-		minLimitStr := positions[0]
-		pos1, err := strconv.Atoi(minLimitStr)
-		if err != nil {
-			return nil, errors.Wrapf(err, "Converting minLimit '%v' from string to int", minLimitStr)
-		}
-
-		maxLimitStr := positions[1]
-		pos2, err := strconv.Atoi(maxLimitStr)
-		if err != nil {
-			return nil, errors.Wrapf(err, "Converting maxLimit '%v' from string to int", maxLimitStr)
-		}
-
-		numRunes := len(letterSpec)
-		if numRunes != 2 {
-			return nil, errors.Errorf("Expected 2 runes, but got %v: %v", numRunes, letterSpec)
-		}
-		letter := rune(letterSpec[0])
-		allStructs = append(
-			allStructs,
-			pwSpec{pos1: pos1, pos2: pos2, letter: letter, password: password},
-		)
-	}
-	return allStructs, nil
-}
-
-func isValid(spec pwSpec) (valid bool) {
-	inFirst := len(spec.password) >= spec.pos1 && rune(spec.password[spec.pos1-1]) == spec.letter
-	inSecond := len(spec.password) >= spec.pos2 && rune(spec.password[spec.pos2-1]) == spec.letter
-	if inFirst && inSecond {
-		return false
-	}
-	if inFirst || inSecond {
-		return true
-	}
-	return false
-}
-
-func skipInvalid(pwSpecs []pwSpec) (allValid []pwSpec) {
-	for _, spec := range pwSpecs {
-		if isValid(spec) {
-			allValid = append(allValid, spec)
-		}
-	}
-	return
-}
-
 func solve(input string) (output string, err error) {
 	lines := strings.Split(input, "\n")
 	stripped := stripAll(lines)
 	nonEmpty := skipEmpty(stripped)
-	structItems, err := allToStructs(nonEmpty)
-	if err != nil {
-		return "", errors.Wrap(err, "Converting input []string to []pwSpec")
+	x := 0
+	y := 0
+	trees := 0
+	for y < len(nonEmpty) {
+		// log.Printf("line: '%v', x: '%v', y: '%v'\n", nonEmpty[x], x, y)
+		if nonEmpty[y][x] == '#' {
+			trees++
+		}
+		x += 3
+		x %= len(nonEmpty[0])
+		y += 1
 	}
-
-	validStructs := skipInvalid(structItems)
-	return strconv.Itoa(len(validStructs)), nil
+	return strconv.Itoa(trees), nil
 }
 
 func main() {

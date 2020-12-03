@@ -7,11 +7,19 @@ import (
 
 func TestExample(t *testing.T) {
 	input := `
-        1-3 a: abcde
-        1-3 b: cdefg
-        2-9 c: ccccccccc
+        ..##.......
+        #...#...#..
+        .#....#..#.
+        ..#.#...#.#
+        .#...##..#.
+        ..#.##.....
+        .#.#.#....#
+        .#........#
+        #.##...#...
+        #...##....#
+        .#..#...#.#
     `
-	expectedOutput := "1"
+	expectedOutput := "336"
 
 	actualOutput, err := solve(input)
 	if err != nil {
@@ -33,7 +41,7 @@ func TestSolution(t *testing.T) {
 		t.Fatalf("Error: %v", err)
 	}
 
-	expectedOutput := "699"
+	expectedOutput := "151"
 
 	actualOutput, err := solve(string(input))
 	if err != nil {
