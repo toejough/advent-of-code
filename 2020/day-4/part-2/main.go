@@ -256,6 +256,7 @@ type field struct {
 }
 
 var hgtRegex = regexp.MustCompile(`(?P<number>\d+)(?P<unit>cm|in)`) //nolint:gochecknoglobals
+var hclRegex = regexp.MustCompile(`#(?:[0-9a-f]{6})`)               //nolint:gochecknoglobals
 
 func isValidField(f field) (valid bool) {
 	name, value := f.name, f.value
@@ -302,7 +303,14 @@ func isValidField(f field) (valid bool) {
 		return false
 
 	case "hcl":
+		return hclRegex.MatchString(value)
 	case "ecl":
+		switch value {
+		case "amb", "blu", "brn", "gry", "grn", "hzl", "oth":
+			return true
+		}
+
+		return false
 	case "pid":
 	case "cid":
 	}
