@@ -6,6 +6,8 @@ import (
 	"log"
 	"strconv"
 	"strings"
+
+	"github.com/pkg/errors"
 )
 
 func stripAll(items []string) (allStripped []string) {
@@ -15,6 +17,119 @@ func stripAll(items []string) (allStripped []string) {
 	}
 
 	return
+}
+
+func splitSections(lines []string) (sections [][]string) {
+	s := []string{}
+
+	for _, l := range lines {
+		if len(l) > 0 {
+			s = append(s, l)
+		} else {
+			sections = append(sections, s)
+			s = []string{}
+		}
+	}
+
+	return sections
+}
+
+type optString struct {
+	present bool
+	value   string
+}
+
+func (o *optString) set(v string) {
+	o.present = true
+	o.value = v
+}
+
+type doc struct {
+	byr optString // (Birth Year)
+	iyr optString // (Issue Year)
+	eyr optString // (Expiration Year)
+	hgt optString // (Height)
+	hcl optString // (Hair Color)
+	ecl optString // (Eye Color)
+	pid optString // (Passport ID)
+	cid optString // (Country ID)
+}
+
+func toSingleLine(lines []string) (line string) {
+	if len(lines) == 0 {
+		return line
+	}
+
+	line = lines[0]
+	lines = lines[1:]
+
+	if len(lines) == 0 {
+		return line
+	}
+
+	for _, l := range lines {
+		line += " " + l
+	}
+
+	return line
+}
+
+type pair struct {
+	name  string
+	value string
+}
+
+func toPair(s string) (p pair, err error) {
+	parts := strings.Split(s, ":")
+
+	const PAIR = 2
+
+	if len(parts) != PAIR {
+		return p, errors.Errorf("expected 'name:value' format, but got '%v'\n", s)
+	}
+
+	name := parts[0]
+	value := parts[1]
+
+	return pair{name: name, value: value}, nil
+}
+
+func toPairs(parts []string) (pairs []pair, err error) {
+	for _, p := range parts {
+		aPair, err := toPair(p)
+		if err != nil {
+			return nil, errors.Wrap(err, "unable to build pair")
+		}
+
+		pairs = append(pairs, aPair)
+	}
+
+	return pairs, nil
+}
+
+func toDoc(pairs []pair) (d doc) {
+	for _, p := range pairs {
+		switch p.name {
+		case "byr":
+			d.byr.set(p.value)
+		case "iyr":
+			d.iyr.set(p.value)
+		case "eyr":
+			d.eyr.set(p.value)
+		case "hgt":
+			d.hgt.set(p.value)
+		case "hcl":
+			d.hcl.set(p.value)
+		case "ecl":
+			d.ecl.set(p.value)
+		case "pid":
+			d.pid.set(p.value)
+		case "cid":
+			d.cid.set(p.value)
+		}
+	}
+
+	return d
 }
 
 func skipEmpty(items []string) (nonEmpty []string) {
@@ -27,47 +142,119 @@ func skipEmpty(items []string) (nonEmpty []string) {
 	return
 }
 
-func countTrees(treeMap []string, s slope) (count int) {
-	x := 0
-	y := 0
-	trees := 0
+func toDocs(sections [][]string) (docs []doc, err error) {
+	for _, s := range sections {
+		sl := toSingleLine(s)
+		stripped := strings.TrimSpace(sl)
+		parts := strings.Split(stripped, " ")
+		nonEmpty := skipEmpty(parts)
 
-	for y < len(treeMap) {
-		if treeMap[y][x] == '#' {
-			trees++
+		pairs, err := toPairs(nonEmpty)
+		if err != nil {
+			return nil, errors.Wrap(err, "unable to build pairs")
 		}
 
-		x += s.x
-		x %= len(treeMap[0])
-		y += s.y
+		d := toDoc(pairs)
+		docs = append(docs, d)
 	}
 
-	return trees
+	return docs, nil
 }
 
-type slope struct {
-	x int
-	y int
+func isValid(d doc) (valid bool) {
+	if !d.byr.present {
+		return false
+	}
+
+	if !d.iyr.present {
+		return false
+	}
+
+	if !d.eyr.present {
+		return false
+	}
+
+	if !d.hgt.present {
+		return false
+	}
+
+	if !d.hcl.present {
+		return false
+	}
+
+	if !d.ecl.present {
+		return false
+	}
+
+	if !d.pid.present {
+		return false
+	}
+
+	return true
 }
 
-func solve(input string) (output string) {
+func countValid(docs []doc) (numValid int) {
+	for _, d := range docs {
+		if isValid(d) {
+			numValid++
+		}
+	}
+
+	return numValid
+}
+
+func solve(input string) (output string, err error) {
 	lines := strings.Split(input, "\n")
 	stripped := stripAll(lines)
-	nonEmpty := skipEmpty(stripped)
-	cumulative := 1
+	sections := splitSections(stripped)
 
-	slopes := []slope{
-		{x: 1, y: 1}, //nolint:gomnd
-		{x: 3, y: 1}, //nolint:gomnd
-		{x: 5, y: 1}, //nolint:gomnd
-		{x: 7, y: 1}, //nolint:gomnd
-		{x: 1, y: 2}, //nolint:gomnd
-	}
-	for _, s := range slopes {
-		cumulative *= countTrees(nonEmpty, s)
+	docs, err := toDocs(sections)
+	if err != nil {
+		return "", errors.Wrap(err, "unable to build docs")
 	}
 
-	return strconv.Itoa(cumulative)
+	numValid := countValid(docs)
+
+	return strconv.Itoa(numValid), nil
+}
+
+func isValidField(name, value string) (valid bool) {
+	const (
+		yearLen = 4
+		minYear = 1920
+		maxYear = 2002
+	)
+
+	switch name {
+	case "byr":
+		if len(value) != yearLen {
+			return false
+		}
+
+		asInt, err := strconv.Atoi(value)
+		if err != nil {
+			return false
+		}
+
+		if asInt < minYear {
+			return false
+		}
+
+		if asInt > maxYear {
+			return false
+		}
+
+		return true
+	case "iyr":
+	case "eyr":
+	case "hgt":
+	case "hcl":
+	case "ecl":
+	case "pid":
+	case "cid":
+	}
+
+	return false
 }
 
 func main() {
@@ -76,6 +263,10 @@ func main() {
 		log.Fatalf("Error: %v", err)
 	}
 
-	output := solve(string(input))
+	output, err := solve(string(input))
+	if err != nil {
+		log.Fatalf("Error: %v\n", err)
+	}
+
 	fmt.Println(output)
 }
