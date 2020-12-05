@@ -163,31 +163,31 @@ func toDocs(sections [][]string) (docs []doc, err error) {
 }
 
 func isValid(d doc) (valid bool) {
-	if !d.byr.present {
+	if !d.byr.present || !isValidField(field{name: "byr", value: d.byr.value}) {
 		return false
 	}
 
-	if !d.iyr.present {
+	if !d.iyr.present || !isValidField(field{name: "iyr", value: d.iyr.value}) {
 		return false
 	}
 
-	if !d.eyr.present {
+	if !d.eyr.present || !isValidField(field{name: "eyr", value: d.eyr.value}) {
 		return false
 	}
 
-	if !d.hgt.present {
+	if !d.hgt.present || !isValidField(field{name: "hgt", value: d.hgt.value}) {
 		return false
 	}
 
-	if !d.hcl.present {
+	if !d.hcl.present || !isValidField(field{name: "hcl", value: d.hcl.value}) {
 		return false
 	}
 
-	if !d.ecl.present {
+	if !d.ecl.present || !isValidField(field{name: "ecl", value: d.ecl.value}) {
 		return false
 	}
 
-	if !d.pid.present {
+	if !d.pid.present || !isValidField(field{name: "pid", value: d.pid.value}) {
 		return false
 	}
 
@@ -255,8 +255,9 @@ type field struct {
 	value string
 }
 
-var hgtRegex = regexp.MustCompile(`(?P<number>\d+)(?P<unit>cm|in)`) //nolint:gochecknoglobals
-var hclRegex = regexp.MustCompile(`#(?:[0-9a-f]{6})`)               //nolint:gochecknoglobals
+var hgtRegex = regexp.MustCompile(`^(?P<number>\d+)(?P<unit>cm|in)$`) //nolint:gochecknoglobals
+var hclRegex = regexp.MustCompile(`^#[0-9a-f]{6}$`)                   //nolint:gochecknoglobals
+var pidRegex = regexp.MustCompile(`^[0-9]{9}$`)                       //nolint:gochecknoglobals
 
 func isValidField(f field) (valid bool) {
 	name, value := f.name, f.value
@@ -312,6 +313,7 @@ func isValidField(f field) (valid bool) {
 
 		return false
 	case "pid":
+		return pidRegex.MatchString(value)
 	case "cid":
 	}
 
