@@ -55,7 +55,8 @@ func TestValid(t *testing.T) {
 		value := parts[2]
 
 		t.Run(testcase, func(s *testing.T) {
-			actualOutput := isValidField(fieldName, value)
+			s.Parallel()
+			actualOutput := isValidField(field{name: fieldName, value: value})
 			if expectedOutput != actualOutput {
 				s.Fatalf(
 					"Expected output was '%v', but we got '%v' instead\n",

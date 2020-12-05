@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -218,36 +219,88 @@ func solve(input string) (output string, err error) {
 	return strconv.Itoa(numValid), nil
 }
 
-func isValidField(name, value string) (valid bool) {
+type yearArgs struct {
+	value string
+	min   int
+	max   int
+}
+
+func isValidYear(args yearArgs) (valid bool) {
+	const yearLen = 4
+
+	y, min, max := args.value, args.min, args.max
+
+	if len(y) != yearLen {
+		return false
+	}
+
+	asInt, err := strconv.Atoi(y)
+	if err != nil {
+		return false
+	}
+
+	if asInt < min {
+		return false
+	}
+
+	if asInt > max {
+		return false
+	}
+
+	return true
+}
+
+type field struct {
+	name  string
+	value string
+}
+
+var hgtRegex = regexp.MustCompile(`(?P<number>\d+)(?P<unit>cm|in)`) //nolint:gochecknoglobals
+
+func isValidField(f field) (valid bool) {
+	name, value := f.name, f.value
+
 	const (
-		yearLen = 4
-		minYear = 1920
-		maxYear = 2002
+		minBirthYear      = 1920
+		maxBirthYear      = 2002
+		minIssuedYear     = 2010
+		maxIssuedYear     = 2020
+		minExpirationYear = 2020
+		maxExpirationYear = 2030
 	)
 
 	switch name {
 	case "byr":
-		if len(value) != yearLen {
-			return false
-		}
-
-		asInt, err := strconv.Atoi(value)
-		if err != nil {
-			return false
-		}
-
-		if asInt < minYear {
-			return false
-		}
-
-		if asInt > maxYear {
-			return false
-		}
-
-		return true
+		return isValidYear(yearArgs{value: value, min: minBirthYear, max: maxBirthYear})
 	case "iyr":
+		return isValidYear(yearArgs{value: value, min: minIssuedYear, max: maxIssuedYear})
 	case "eyr":
+		return isValidYear(yearArgs{value: value, min: minExpirationYear, max: maxExpirationYear})
 	case "hgt":
+		indices := hgtRegex.FindStringSubmatchIndex(value)
+		if len(indices) == 0 {
+			return false
+		}
+
+		number, err := strconv.Atoi(string(hgtRegex.ExpandString([]byte{}, "$number", value, indices)))
+		if err != nil {
+			panic(errors.Wrap(err, "Regex number match couldn't be converted to a number"))
+		}
+
+		unit := string(hgtRegex.ExpandString([]byte{}, "$unit", value, indices))
+		switch unit {
+		case "cm":
+			if 150 <= number && number <= 193 {
+				return true
+			}
+		case "in":
+			if 59 <= number && number <= 76 {
+				return true
+			}
+		}
+
+		return false
+
 	case "hcl":
 	case "ecl":
 	case "pid":
