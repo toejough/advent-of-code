@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -19,117 +20,128 @@ func stripAll(items []string) (allStripped []string) {
 	return
 }
 
-func splitSections(lines []string) (sections [][]string) {
-	s := []string{}
+type decoded struct {
+	row  int
+	seat int
+}
 
-	for _, l := range lines {
-		if len(l) > 0 {
-			s = append(s, l)
+func (d decoded) id() int {
+	return d.row*8 + d.seat
+}
+
+var seatRegex = regexp.MustCompile(`^(?P<row>(?:F|B){7})(?P<seat>(?:R|L){3})$`) // nolint:gochecknoglobals
+func decodeRow(spec string) (row int) {
+	min, max := 1, 128
+
+	for _, v := range spec {
+		if v == 'F' {
+			max = (max-min)/2 + min //nolint:gomnd
+			row = max
 		} else {
-			sections = append(sections, s)
-			s = []string{}
+			min = (max-min)/2 + min //nolint:gomnd
+			row = min
 		}
 	}
 
-	return sections
+	return row - 1
 }
 
-type optString struct {
-	present bool
-	value   string
-}
+func decodeSeat(spec string) (seat int) {
+	min, max := 1, 8
 
-func (o *optString) set(v string) {
-	o.present = true
-	o.value = v
-}
-
-type doc struct {
-	byr optString // (Birth Year)
-	iyr optString // (Issue Year)
-	eyr optString // (Expiration Year)
-	hgt optString // (Height)
-	hcl optString // (Hair Color)
-	ecl optString // (Eye Color)
-	pid optString // (Passport ID)
-	cid optString // (Country ID)
-}
-
-func toSingleLine(lines []string) (line string) {
-	if len(lines) == 0 {
-		return line
+	for _, v := range spec {
+		if v == 'L' {
+			max = (max-min)/2 + min //nolint:gomnd
+			seat = max
+		} else {
+			min = (max-min)/2 + min //nolint:gomnd
+			seat = min
+		}
 	}
 
-	line = lines[0]
-	lines = lines[1:]
+	return seat - 1
+}
 
-	if len(lines) == 0 {
-		return line
+func decode(s string) (d decoded, err error) {
+	log.Printf("string to decode: %v\n", s)
+
+	indices := seatRegex.FindStringSubmatchIndex(s)
+	if len(indices) == 0 {
+		return d, errors.Errorf("unable to decode `%v`\n", s)
 	}
 
+	rowSpec := string(seatRegex.ExpandString([]byte{}, "$row", s, indices))
+
+	log.Printf("rowSpec: %v\n", rowSpec)
+
+	d.row = decodeRow(rowSpec)
+
+	log.Printf("row: %v\n", d.row)
+
+	seatSpec := string(seatRegex.ExpandString([]byte{}, "$seat", s, indices))
+
+	log.Printf("seatSpec: %v\n", seatSpec)
+
+	d.seat = decodeSeat(seatSpec)
+
+	log.Printf("seat: %v\n", d.seat)
+
+	return d, nil
+}
+
+func decodeAll(lines []string) (allDecoded []decoded, err error) {
 	for _, l := range lines {
-		line += " " + l
-	}
-
-	return line
-}
-
-type pair struct {
-	name  string
-	value string
-}
-
-func toPair(s string) (p pair, err error) {
-	parts := strings.Split(s, ":")
-
-	const PAIR = 2
-
-	if len(parts) != PAIR {
-		return p, errors.Errorf("expected 'name:value' format, but got '%v'\n", s)
-	}
-
-	name := parts[0]
-	value := parts[1]
-
-	return pair{name: name, value: value}, nil
-}
-
-func toPairs(parts []string) (pairs []pair, err error) {
-	for _, p := range parts {
-		aPair, err := toPair(p)
+		oneDecoded, err := decode(l)
 		if err != nil {
-			return nil, errors.Wrap(err, "unable to build pair")
+			return nil, errors.Wrapf(err, "unable to decode `%v`", l)
 		}
 
-		pairs = append(pairs, aPair)
+		allDecoded = append(allDecoded, oneDecoded)
 	}
 
-	return pairs, nil
+	return allDecoded, nil
 }
 
-func toDoc(pairs []pair) (d doc) {
-	for _, p := range pairs {
-		switch p.name {
-		case "byr":
-			d.byr.set(p.value)
-		case "iyr":
-			d.iyr.set(p.value)
-		case "eyr":
-			d.eyr.set(p.value)
-		case "hgt":
-			d.hgt.set(p.value)
-		case "hcl":
-			d.hcl.set(p.value)
-		case "ecl":
-			d.ecl.set(p.value)
-		case "pid":
-			d.pid.set(p.value)
-		case "cid":
-			d.cid.set(p.value)
+func idsFrom(d []decoded) (ids []int) {
+	for _, thisD := range d {
+		ids = append(ids, thisD.id())
+	}
+
+	return ids
+}
+
+type maybeInt struct {
+	value   int
+	err     error
+	isValue bool
+}
+
+func (m *maybeInt) setError(err error) {
+	m.err = err
+	m.isValue = false
+}
+
+func (m *maybeInt) setValue(v int) {
+	m.value = v
+	m.isValue = true
+}
+
+func maxInt(ints []int) (max maybeInt) {
+	if len(ints) == 0 {
+		max.setError(errors.New("no ints to get the max from"))
+		return max
+	}
+
+	maxValue := ints[0]
+	for _, i := range ints[1:] {
+		if maxValue < i {
+			maxValue = i
 		}
 	}
 
-	return d
+	max.setValue(maxValue)
+
+	return max
 }
 
 func skipEmpty(items []string) (nonEmpty []string) {
@@ -142,80 +154,24 @@ func skipEmpty(items []string) (nonEmpty []string) {
 	return
 }
 
-func toDocs(sections [][]string) (docs []doc, err error) {
-	for _, s := range sections {
-		sl := toSingleLine(s)
-		stripped := strings.TrimSpace(sl)
-		parts := strings.Split(stripped, " ")
-		nonEmpty := skipEmpty(parts)
-
-		pairs, err := toPairs(nonEmpty)
-		if err != nil {
-			return nil, errors.Wrap(err, "unable to build pairs")
-		}
-
-		d := toDoc(pairs)
-		docs = append(docs, d)
-	}
-
-	return docs, nil
-}
-
-func isValid(d doc) (valid bool) {
-	if !d.byr.present {
-		return false
-	}
-
-	if !d.iyr.present {
-		return false
-	}
-
-	if !d.eyr.present {
-		return false
-	}
-
-	if !d.hgt.present {
-		return false
-	}
-
-	if !d.hcl.present {
-		return false
-	}
-
-	if !d.ecl.present {
-		return false
-	}
-
-	if !d.pid.present {
-		return false
-	}
-
-	return true
-}
-
-func countValid(docs []doc) (numValid int) {
-	for _, d := range docs {
-		if isValid(d) {
-			numValid++
-		}
-	}
-
-	return numValid
-}
-
 func solve(input string) (output string, err error) {
 	lines := strings.Split(input, "\n")
 	stripped := stripAll(lines)
-	sections := splitSections(stripped)
+	nonEmpty := skipEmpty(stripped)
 
-	docs, err := toDocs(sections)
+	decoded, err := decodeAll(nonEmpty)
 	if err != nil {
-		return "", errors.Wrap(err, "unable to build docs")
+		return "", errors.Wrap(err, "unable to decode all")
 	}
 
-	numValid := countValid(docs)
+	ids := idsFrom(decoded)
 
-	return strconv.Itoa(numValid), nil
+	maxID := maxInt(ids)
+	if !maxID.isValue {
+		return "", errors.Wrap(maxID.err, "unable to find max int")
+	}
+
+	return strconv.Itoa(maxID.value), nil
 }
 
 func main() {
