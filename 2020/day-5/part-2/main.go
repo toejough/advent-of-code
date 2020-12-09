@@ -20,117 +20,94 @@ func stripAll(items []string) (allStripped []string) {
 	return
 }
 
-func splitSections(lines []string) (sections [][]string) {
-	s := []string{}
+type decoded struct {
+	row  int
+	seat int
+}
 
-	for _, l := range lines {
-		if len(l) > 0 {
-			s = append(s, l)
+func (d decoded) id() int {
+	return d.row*8 + d.seat
+}
+
+var seatRegex = regexp.MustCompile(`^(?P<row>(?:F|B){7})(?P<seat>(?:R|L){3})$`) // nolint:gochecknoglobals
+func decodeRow(spec string) (row int) {
+	min, max := 0, 127
+
+	for _, v := range spec {
+		if v == 'F' {
+			max = (max-min+1)/2 + min - 1 //nolint:gomnd
+			row = min
 		} else {
-			sections = append(sections, s)
-			s = []string{}
+			min = (max-min+1)/2 + min //nolint:gomnd
+			row = max
 		}
 	}
 
-	return sections
+	return row
 }
 
-type optString struct {
-	present bool
-	value   string
-}
+func decodeSeat(spec string) (seat int) {
+	min, max := 0, 7
 
-func (o *optString) set(v string) {
-	o.present = true
-	o.value = v
-}
-
-type doc struct {
-	byr optString // (Birth Year)
-	iyr optString // (Issue Year)
-	eyr optString // (Expiration Year)
-	hgt optString // (Height)
-	hcl optString // (Hair Color)
-	ecl optString // (Eye Color)
-	pid optString // (Passport ID)
-	cid optString // (Country ID)
-}
-
-func toSingleLine(lines []string) (line string) {
-	if len(lines) == 0 {
-		return line
+	for _, v := range spec {
+		if v == 'L' {
+			max = (max-min+1)/2 + min - 1 //nolint:gomnd
+			seat = min
+		} else {
+			min = (max-min+1)/2 + min //nolint:gomnd
+			seat = max
+		}
 	}
 
-	line = lines[0]
-	lines = lines[1:]
+	return seat
+}
 
-	if len(lines) == 0 {
-		return line
+func decode(s string) (d decoded, err error) {
+	log.Printf("string to decode: %v\n", s)
+
+	indices := seatRegex.FindStringSubmatchIndex(s)
+	if len(indices) == 0 {
+		return d, errors.Errorf("unable to decode `%v`\n", s)
 	}
 
+	rowSpec := string(seatRegex.ExpandString([]byte{}, "$row", s, indices))
+
+	log.Printf("rowSpec: %v\n", rowSpec)
+
+	d.row = decodeRow(rowSpec)
+
+	log.Printf("row: %v\n", d.row)
+
+	seatSpec := string(seatRegex.ExpandString([]byte{}, "$seat", s, indices))
+
+	log.Printf("seatSpec: %v\n", seatSpec)
+
+	d.seat = decodeSeat(seatSpec)
+
+	log.Printf("seat: %v\n", d.seat)
+
+	return d, nil
+}
+
+func decodeAll(lines []string) (allDecoded []decoded, err error) {
 	for _, l := range lines {
-		line += " " + l
-	}
-
-	return line
-}
-
-type pair struct {
-	name  string
-	value string
-}
-
-func toPair(s string) (p pair, err error) {
-	parts := strings.Split(s, ":")
-
-	const PAIR = 2
-
-	if len(parts) != PAIR {
-		return p, errors.Errorf("expected 'name:value' format, but got '%v'\n", s)
-	}
-
-	name := parts[0]
-	value := parts[1]
-
-	return pair{name: name, value: value}, nil
-}
-
-func toPairs(parts []string) (pairs []pair, err error) {
-	for _, p := range parts {
-		aPair, err := toPair(p)
+		oneDecoded, err := decode(l)
 		if err != nil {
-			return nil, errors.Wrap(err, "unable to build pair")
+			return nil, errors.Wrapf(err, "unable to decode `%v`", l)
 		}
 
-		pairs = append(pairs, aPair)
+		allDecoded = append(allDecoded, oneDecoded)
 	}
 
-	return pairs, nil
+	return allDecoded, nil
 }
 
-func toDoc(pairs []pair) (d doc) {
-	for _, p := range pairs {
-		switch p.name {
-		case "byr":
-			d.byr.set(p.value)
-		case "iyr":
-			d.iyr.set(p.value)
-		case "eyr":
-			d.eyr.set(p.value)
-		case "hgt":
-			d.hgt.set(p.value)
-		case "hcl":
-			d.hcl.set(p.value)
-		case "ecl":
-			d.ecl.set(p.value)
-		case "pid":
-			d.pid.set(p.value)
-		case "cid":
-			d.cid.set(p.value)
-		}
+func idsFrom(d []decoded) (ids []int) {
+	for _, thisD := range d {
+		ids = append(ids, thisD.id())
 	}
 
-	return d
+	return ids
 }
 
 func skipEmpty(items []string) (nonEmpty []string) {
@@ -143,181 +120,76 @@ func skipEmpty(items []string) (nonEmpty []string) {
 	return
 }
 
-func toDocs(sections [][]string) (docs []doc, err error) {
-	for _, s := range sections {
-		sl := toSingleLine(s)
-		stripped := strings.TrimSpace(sl)
-		parts := strings.Split(stripped, " ")
-		nonEmpty := skipEmpty(parts)
-
-		pairs, err := toPairs(nonEmpty)
-		if err != nil {
-			return nil, errors.Wrap(err, "unable to build pairs")
+func generateAll() (all []decoded) {
+	for row := 0; row <= 127; row++ {
+		for column := 0; column <= 7; column++ {
+			all = append(all, decoded{seat: column, row: row})
 		}
-
-		d := toDoc(pairs)
-		docs = append(docs, d)
 	}
 
-	return docs, nil
+	return all
 }
 
-func isValid(d doc) (valid bool) {
-	if !d.byr.present || !isValidField(field{name: "byr", value: d.byr.value}) {
-		return false
-	}
-
-	if !d.iyr.present || !isValidField(field{name: "iyr", value: d.iyr.value}) {
-		return false
-	}
-
-	if !d.eyr.present || !isValidField(field{name: "eyr", value: d.eyr.value}) {
-		return false
-	}
-
-	if !d.hgt.present || !isValidField(field{name: "hgt", value: d.hgt.value}) {
-		return false
-	}
-
-	if !d.hcl.present || !isValidField(field{name: "hcl", value: d.hcl.value}) {
-		return false
-	}
-
-	if !d.ecl.present || !isValidField(field{name: "ecl", value: d.ecl.value}) {
-		return false
-	}
-
-	if !d.pid.present || !isValidField(field{name: "pid", value: d.pid.value}) {
-		return false
+func singleNotIn(i int, s []int) (result bool) {
+	for _, item := range s {
+		if i == item {
+			return false
+		}
 	}
 
 	return true
 }
 
-func countValid(docs []doc) (numValid int) {
-	for _, d := range docs {
-		if isValid(d) {
-			numValid++
+func difference(base []int, remove []int) (remaining []int) {
+	for _, b := range base {
+		if singleNotIn(b, remove) {
+			remaining = append(remaining, b)
 		}
 	}
 
-	return numValid
+	return remaining
+}
+
+func add(items []int, value int) (added []int) {
+	for _, i := range items {
+		added = append(added, i+value)
+	}
+
+	return added
+}
+
+func notIn(items []int, container []int) (missing []int) {
+	for _, i := range items {
+		if singleNotIn(i, container) {
+			missing = append(missing, i)
+		}
+	}
+
+	return missing
 }
 
 func solve(input string) (output string, err error) {
 	lines := strings.Split(input, "\n")
 	stripped := stripAll(lines)
-	sections := splitSections(stripped)
+	nonEmpty := skipEmpty(stripped)
 
-	docs, err := toDocs(sections)
+	decoded, err := decodeAll(nonEmpty)
 	if err != nil {
-		return "", errors.Wrap(err, "unable to build docs")
+		return "", errors.Wrap(err, "unable to decode all")
 	}
 
-	numValid := countValid(docs)
+	ids := idsFrom(decoded)
+	all := idsFrom(generateAll())
+	missing := difference(all, ids)
+	log.Printf("Missing ID's: %v\n", missing)
+	options := add(notIn(add(missing, 1), missing), -1)
+	options = add(notIn(add(options, -1), missing), 1)
 
-	return strconv.Itoa(numValid), nil
-}
-
-type yearArgs struct {
-	value string
-	min   int
-	max   int
-}
-
-func isValidYear(args yearArgs) (valid bool) {
-	const yearLen = 4
-
-	y, min, max := args.value, args.min, args.max
-
-	if len(y) != yearLen {
-		return false
+	if len(options) != 1 { //nolint:gomd
+		return "", errors.Errorf("expected exactly 1 option, but got %v", options)
 	}
 
-	asInt, err := strconv.Atoi(y)
-	if err != nil {
-		return false
-	}
-
-	if asInt < min {
-		return false
-	}
-
-	if asInt > max {
-		return false
-	}
-
-	return true
-}
-
-type field struct {
-	name  string
-	value string
-}
-
-var hgtRegex = regexp.MustCompile(`^(?P<number>\d+)(?P<unit>cm|in)$`) //nolint:gochecknoglobals
-var hclRegex = regexp.MustCompile(`^#[0-9a-f]{6}$`)                   //nolint:gochecknoglobals
-var pidRegex = regexp.MustCompile(`^[0-9]{9}$`)                       //nolint:gochecknoglobals
-
-func isValidField(f field) (valid bool) {
-	name, value := f.name, f.value
-
-	const (
-		minBirthYear      = 1920
-		maxBirthYear      = 2002
-		minIssuedYear     = 2010
-		maxIssuedYear     = 2020
-		minExpirationYear = 2020
-		maxExpirationYear = 2030
-	)
-
-	switch name {
-	case "byr":
-		return isValidYear(yearArgs{value: value, min: minBirthYear, max: maxBirthYear})
-	case "iyr":
-		return isValidYear(yearArgs{value: value, min: minIssuedYear, max: maxIssuedYear})
-	case "eyr":
-		return isValidYear(yearArgs{value: value, min: minExpirationYear, max: maxExpirationYear})
-	case "hgt":
-		indices := hgtRegex.FindStringSubmatchIndex(value)
-		if len(indices) == 0 {
-			return false
-		}
-
-		number, err := strconv.Atoi(string(hgtRegex.ExpandString([]byte{}, "$number", value, indices)))
-		if err != nil {
-			panic(errors.Wrap(err, "Regex number match couldn't be converted to a number"))
-		}
-
-		unit := string(hgtRegex.ExpandString([]byte{}, "$unit", value, indices))
-		switch unit {
-		case "cm":
-			if 150 <= number && number <= 193 {
-				return true
-			}
-		case "in":
-			if 59 <= number && number <= 76 {
-				return true
-			}
-		}
-
-		return false
-
-	case "hcl":
-		return hclRegex.MatchString(value)
-	case "ecl":
-		switch value {
-		case "amb", "blu", "brn", "gry", "grn", "hzl", "oth":
-			return true
-		}
-
-		return false
-	case "pid":
-		return pidRegex.MatchString(value)
-	case "cid":
-	}
-
-	return false
+	return strconv.Itoa(options[0]), nil
 }
 
 func main() {
