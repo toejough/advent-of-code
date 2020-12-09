@@ -31,35 +31,35 @@ func (d decoded) id() int {
 
 var seatRegex = regexp.MustCompile(`^(?P<row>(?:F|B){7})(?P<seat>(?:R|L){3})$`) // nolint:gochecknoglobals
 func decodeRow(spec string) (row int) {
-	min, max := 1, 128
+	min, max := 0, 127
 
 	for _, v := range spec {
 		if v == 'F' {
-			max = (max-min)/2 + min //nolint:gomnd
-			row = max
-		} else {
-			min = (max-min)/2 + min //nolint:gomnd
+			max = (max-min+1)/2 + min - 1 //nolint:gomnd
 			row = min
+		} else {
+			min = (max-min+1)/2 + min //nolint:gomnd
+			row = max
 		}
 	}
 
-	return row - 1
+	return row
 }
 
 func decodeSeat(spec string) (seat int) {
-	min, max := 1, 8
+	min, max := 0, 7
 
 	for _, v := range spec {
 		if v == 'L' {
-			max = (max-min)/2 + min //nolint:gomnd
-			seat = max
-		} else {
-			min = (max-min)/2 + min //nolint:gomnd
+			max = (max-min+1)/2 + min - 1 //nolint:gomnd
 			seat = min
+		} else {
+			min = (max-min+1)/2 + min //nolint:gomnd
+			seat = max
 		}
 	}
 
-	return seat - 1
+	return seat
 }
 
 func decode(s string) (d decoded, err error) {
