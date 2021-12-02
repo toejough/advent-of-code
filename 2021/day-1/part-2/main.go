@@ -12,7 +12,9 @@ func openFile(path string) *os.File {
 	if err != nil {
 		panic(err)
 	}
+
 	log.Printf("File: %s", file.Name())
+
 	return file
 }
 
@@ -26,6 +28,7 @@ func readInt(scanner *bufio.Scanner) (bool, int) {
 	log.Printf("line: %s", line)
 
 	number := atoi(line)
+
 	return true, number
 }
 
@@ -40,6 +43,7 @@ func atoi(line string) int {
 
 func main() {
 	scanner := bufio.NewScanner(openFile(os.Args[1]))
+
 	ok, first := readInt(scanner)
 	if !ok {
 		log.Fatalln("No first line found to read...")
@@ -64,11 +68,15 @@ func main() {
 	for ok {
 		first, second, third = second, third, depth
 		depthSum := first + second + third
+
 		log.Printf("DepthSum: %d", depthSum)
+
 		if depthSum > lastDepthSum {
-			numIncreases += 1
+			numIncreases++
+
 			log.Println("increased!")
 		}
+
 		lastDepthSum = depthSum
 		ok, depth = readInt(scanner)
 	}
