@@ -62,7 +62,7 @@ func createLineIterator(path string) LineIterator {
 	return LineIterator{LineCh: lineCh}
 }
 
-func (li LineIterator) Next() (int, bool) {
+func (li LineIterator) NextAsInt() (int, bool) {
 	line, ok := <-li.LineCh
     if !ok {
         return 0, ok
@@ -73,17 +73,17 @@ func (li LineIterator) Next() (int, bool) {
 }
 
 func getThreeLines(li LineIterator) (int, int, int) {
-	first, ok := li.Next()
+	first, ok := li.NextAsInt()
 	if !ok {
 		log.Fatalln("No first line found to read...")
 	}
 
-	second, ok := li.Next()
+	second, ok := li.NextAsInt()
 	if !ok {
 		log.Fatalln("No second line found to read...")
 	}
 
-	third, ok := li.Next()
+	third, ok := li.NextAsInt()
 	if !ok {
 		log.Fatalln("No third line found to read...")
 	}
@@ -94,12 +94,13 @@ func getThreeLines(li LineIterator) (int, int, int) {
 
 func main() {
 	lineIterator := createLineIterator(os.Args[1])
+
     first, second, third := getThreeLines(lineIterator)
 
 	lastDepthSum := first + second + third
 	log.Printf("DepthSum: %d", lastDepthSum)
 
-	depth, ok := lineIterator.Next()
+	depth, ok := lineIterator.NextAsInt()
 	numIncreases := 0
 
 	for ok {
@@ -115,7 +116,7 @@ func main() {
 		}
 
 		lastDepthSum = depthSum
-		depth, ok = lineIterator.Next()
+		depth, ok = lineIterator.NextAsInt()
 	}
 
 	log.Printf("NumIncreases: %d", numIncreases)
