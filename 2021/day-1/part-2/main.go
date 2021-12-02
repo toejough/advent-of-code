@@ -72,23 +72,29 @@ func (li LineIterator) Next() (int, bool) {
 	return number, ok
 }
 
-func main() {
-	lineIterator := createLineIterator(os.Args[1])
-
-	first, ok := lineIterator.Next()
+func getThreeLines(li LineIterator) (int, int, int) {
+	first, ok := li.Next()
 	if !ok {
 		log.Fatalln("No first line found to read...")
 	}
 
-	second, ok := lineIterator.Next()
+	second, ok := li.Next()
 	if !ok {
 		log.Fatalln("No second line found to read...")
 	}
 
-	third, ok := lineIterator.Next()
+	third, ok := li.Next()
 	if !ok {
 		log.Fatalln("No third line found to read...")
 	}
+
+    return first, second, third
+}
+
+
+func main() {
+	lineIterator := createLineIterator(os.Args[1])
+    first, second, third := getThreeLines(lineIterator)
 
 	lastDepthSum := first + second + third
 	log.Printf("DepthSum: %d", lastDepthSum)
