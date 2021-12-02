@@ -41,20 +41,51 @@ func atoi(line string) int {
 	return number
 }
 
-func main() {
-	scanner := bufio.NewScanner(openFile(os.Args[1]))
+type LineIterator struct {
+	LineCh chan string
+}
 
-	ok, first := readInt(scanner)
+func createLineIterator(path string) LineIterator {
+	file := openFile(os.Args[1])
+
+	scanner := bufio.NewScanner(file)
+	lineCh := make(chan string)
+
+	go func() {
+		for scanner.Scan() {
+			lineCh <- scanner.Text()
+		}
+		close(lineCh)
+		file.Close()
+	}()
+
+	return LineIterator{LineCh: lineCh}
+}
+
+func (li LineIterator) Next() (int, bool) {
+	line, ok := <-li.LineCh
+    if !ok {
+        return 0, ok
+    }
+
+	number := atoi(line)
+	return number, ok
+}
+
+func main() {
+	lineIterator := createLineIterator(os.Args[1])
+
+	first, ok := lineIterator.Next()
 	if !ok {
 		log.Fatalln("No first line found to read...")
 	}
 
-	ok, second := readInt(scanner)
+	second, ok := lineIterator.Next()
 	if !ok {
 		log.Fatalln("No second line found to read...")
 	}
 
-	ok, third := readInt(scanner)
+	third, ok := lineIterator.Next()
 	if !ok {
 		log.Fatalln("No third line found to read...")
 	}
@@ -62,7 +93,7 @@ func main() {
 	lastDepthSum := first + second + third
 	log.Printf("DepthSum: %d", lastDepthSum)
 
-	ok, depth := readInt(scanner)
+	depth, ok := lineIterator.Next()
 	numIncreases := 0
 
 	for ok {
@@ -78,7 +109,7 @@ func main() {
 		}
 
 		lastDepthSum = depthSum
-		ok, depth = readInt(scanner)
+		depth, ok = lineIterator.Next()
 	}
 
 	log.Printf("NumIncreases: %d", numIncreases)
