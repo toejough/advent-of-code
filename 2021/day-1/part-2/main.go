@@ -18,20 +18,6 @@ func openFile(path string) *os.File {
 	return file
 }
 
-func readInt(scanner *bufio.Scanner) (bool, int) {
-	isALine := scanner.Scan()
-	if !isALine {
-		return false, 0
-	}
-
-	line := scanner.Text()
-	log.Printf("line: %s", line)
-
-	number := atoi(line)
-
-	return true, number
-}
-
 func atoi(line string) int {
 	number, err := strconv.Atoi(line)
 	if err != nil {
@@ -46,7 +32,7 @@ type LineIterator struct {
 }
 
 func createLineIterator(path string) LineIterator {
-	file := openFile(os.Args[1])
+	file := openFile(path)
 
 	scanner := bufio.NewScanner(file)
 	lineCh := make(chan string)
@@ -64,11 +50,12 @@ func createLineIterator(path string) LineIterator {
 
 func (li LineIterator) NextAsInt() (int, bool) {
 	line, ok := <-li.LineCh
-    if !ok {
-        return 0, ok
-    }
+	if !ok {
+		return 0, ok
+	}
 
 	number := atoi(line)
+
 	return number, ok
 }
 
@@ -88,14 +75,13 @@ func getThreeLines(li LineIterator) (int, int, int) {
 		log.Fatalln("No third line found to read...")
 	}
 
-    return first, second, third
+	return first, second, third
 }
-
 
 func main() {
 	lineIterator := createLineIterator(os.Args[1])
 
-    first, second, third := getThreeLines(lineIterator)
+	first, second, third := getThreeLines(lineIterator)
 
 	lastDepthSum := first + second + third
 	log.Printf("DepthSum: %d", lastDepthSum)
