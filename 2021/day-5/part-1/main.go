@@ -157,8 +157,8 @@ func markNumber(n int, b *board) {
 	for _, l := range b.lines {
 		for i := range l.squares {
 			if l.squares[i].value == n {
-                l.squares[i].marked = true
-                log.Printf("Marking %d", n)
+				l.squares[i].marked = true
+				log.Printf("Marking %d", n)
 				return
 			}
 		}
@@ -219,61 +219,146 @@ func sumUnmarked(b *board) int {
 }
 
 func logDrawnNumbers(numbers []int, index int) {
-    str := ""
-    for i, n := range numbers {
-        if i<= index {
-            str += color.GreenString(fmt.Sprintf("%d ", n))
-        } else {
-            str += fmt.Sprintf("%d ", n)
-        }
-    }
-    log.Print(str)
+	str := ""
+	for i, n := range numbers {
+		if i <= index {
+			str += color.GreenString(fmt.Sprintf("%d ", n))
+		} else {
+			str += fmt.Sprintf("%d ", n)
+		}
+	}
+	log.Print(str)
 }
 
 func logBoard(b *board) {
-    str := ""
-    for _, l := range b.lines {
-        str += "\n"
-        for _, s := range l.squares {
-            if s.marked {
-                str += color.GreenString(fmt.Sprintf("%d ", s.value))
-            } else {
-                str += fmt.Sprintf("%d ", s.value)
-            }
-        }
-    }
-    str += "\n"
-    log.Print(str)
+	str := ""
+	for _, l := range b.lines {
+		str += "\n"
+		for _, s := range l.squares {
+			if s.marked {
+				str += color.GreenString(fmt.Sprintf("%d ", s.value))
+			} else {
+				str += fmt.Sprintf("%d ", s.value)
+			}
+		}
+	}
+	str += "\n"
+	log.Print(str)
 }
 
+type point struct {
+	x, y int
+}
+
+type segment struct {
+	first, second point
+}
+
+func parsePoint(s string) point {
+	parts := strings.Split(s, ",")
+	if len(parts) != 2 {
+		log.Fatal("length of point parts was not 2")
+	}
+
+	return point{
+		x: atoi(parts[0]),
+		y: atoi(parts[1]),
+	}
+}
+
+func parseSegment(line string) segment {
+	parts := strings.Fields(line)
+	if len(parts) != 3 {
+		log.Fatal("length of line segment parts was not 3")
+	}
+
+	return segment{
+		first:  parsePoint(parts[0]),
+		second: parsePoint(parts[2]),
+	}
+}
+
+func parseSegments(li *LineIterator) []segment {
+	line, ok := li.Next()
+	segments := []segment{}
+	for ok {
+		segments = append(segments, parseSegment(line))
+		line, ok = li.Next()
+	}
+	return segments
+}
+
+type ventMap struct {
+	coordinateCounts map[int]map[int]int
+}
+
+func expandPoints(s segment) []point {
+	points := []point{}
+	if s.first.x < s.second.x {
+        if s.first.y != s.second.y {
+            return []point{}
+        }
+		for i := s.first.x; i <= s.second.x; i++ {
+			points = append(points, point{x: i, y: s.first.y})
+		}
+	} else if s.first.x > s.second.x {
+        if s.first.y != s.second.y {
+            return []point{}
+        }
+		for i := s.second.x; i <= s.first.x; i++ {
+			points = append(points, point{x: i, y: s.first.y})
+		}
+	} else if s.first.y < s.second.y {
+        if s.first.x != s.second.x {
+            return []point{}
+        }
+		for i := s.first.y; i <= s.second.y; i++ {
+			points = append(points, point{x: s.first.x, y: i})
+		}
+	} else if s.first.y > s.second.y {
+        if s.first.x != s.second.x {
+            return []point{}
+        }
+		for i := s.second.y; i <= s.first.y; i++ {
+			points = append(points, point{x: s.first.x, y: i})
+		}
+	}
+	return points
+}
+
+func applySegmentsToMap(m *ventMap, segments []segment) {
+	for _, s := range segments {
+		points := expandPoints(s)
+		for _, p := range points {
+            _, ok := m.coordinateCounts[p.x]
+            if !ok {
+                m.coordinateCounts[p.x] = map[int] int{}
+            }
+            m.coordinateCounts[p.x][p.y]++
+		}
+	}
+}
+
+func countCoordinatesOver2(v *ventMap) (count int) {
+	for _, y := range v.coordinateCounts {
+		for _, v := range y {
+			if v > 1 {
+				count++
+			}
+		}
+	}
+	return count
+}
 
 func main() {
 	lineIterator := createLineIterator(os.Args[1])
 
-	numbers := parseNumbers(lineIterator)
-	boards := parseBoards(lineIterator)
+	segments := parseSegments(lineIterator)
+    vMap := &ventMap{coordinateCounts: map[int]map[int] int{}}
 
-	for i, n := range numbers {
-        logDrawnNumbers(numbers, i)
-        nextBoards := []board{}
-		for _, b := range boards {
-			markNumber(n, &b)
-            logBoard(&b)
-			won := checkBoard(&b)
-			if won {
-                if len(boards) == 1 {
-                    sum := sumUnmarked(&b)
-                    log.Printf("Final Number: %d", n)
-                    log.Printf("Sum: %d", sum)
-                    log.Printf("Score: %d", sum*n)
-                    return
-                }
-			} else {
-                nextBoards = append(nextBoards, b)
-            }
-		}
-        boards = nextBoards
-	}
+	applySegmentsToMap(vMap, segments)
 
-	log.Fatal("Got to the end without the final board winning")
+	count := countCoordinatesOver2(vMap)
+
+	log.Printf("Count: %d", count)
 }
