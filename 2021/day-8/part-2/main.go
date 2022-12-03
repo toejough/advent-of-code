@@ -164,9 +164,7 @@ func extractOutputs(displays []display) [][]string {
 func flattenOutputs(outputs [][]string) []string {
 	flattened := []string{}
 	for _, o := range outputs {
-		for _, each := range o {
-			flattened = append(flattened, each)
-		}
+		flattened = append(flattened, o...)
 	}
 	return flattened
 }
