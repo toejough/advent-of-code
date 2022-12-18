@@ -4,7 +4,7 @@ import (
 	"testing"
 )
 
-func TestDay1Part1(t *testing.T) {
+func TestDay1(t *testing.T) {
 	t.Parallel()
 
 	tests := map[string]struct {
@@ -15,6 +15,7 @@ func TestDay1Part1(t *testing.T) {
 		"day1-part1-example": {filename: "day1-input-example.txt", solver: solveDay1Part1, result: "24000"},
 		"day1-part1-puzzle":  {filename: "day1-input-puzzle.txt", solver: solveDay1Part1, result: "69528"},
 		"day1-part2-example": {filename: "day1-input-example.txt", solver: solveDay1Part2, result: "45000"},
+		"day1-part2-puzzle":  {filename: "day1-input-puzzle.txt", solver: solveDay1Part2, result: "206152"},
 	}
 
 	for name, tc := range tests {
