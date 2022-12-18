@@ -1,7 +1,6 @@
 package main
 
 import (
-	"strings"
 	"testing"
 )
 
@@ -23,10 +22,9 @@ func TestSolution(t *testing.T) {
 			t.Parallel()
 
 			text := mustReadFileText(testCase.filename)
-			lines := strings.Split(text, "\n")
 			expectedOutput := testCase.result
 
-			actualOutput, err := solve(lines)
+			actualOutput, err := solve(text)
 			if err != nil {
 				t.Fatalf("Expected no errors, but got '%v'\n", err)
 			}
@@ -47,8 +45,7 @@ func FuzzSolve(f *testing.F) {
 	f.Add(mustReadFileText("puzzle-input.txt"))
 	f.Fuzz(func(_ *testing.T, s string) {
 		// WHEN the program is called with the input
-		lines := strings.Split(s, "\n")
-		_, _ = solve(lines)
+		_, _ = solve(s)
 
 		// THEN the run is expected to return just fine.
 	})
