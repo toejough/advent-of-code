@@ -120,6 +120,156 @@ func solveDay1Part2(text string) (string, error) {
 	return fmt.Sprintf("%d", total), nil
 }
 
+var (
+	ErrNoRPSEnumForRune       = fmt.Errorf("no RPS enum was found for the rune")
+	ErrUnrecognizedRPSEnum    = fmt.Errorf("unrecognized RPS enum")
+	ErrUnrecognizedRPSOutcome = fmt.Errorf("unrecognized RPS outcome enum")
+)
+
+func solveDay2Part1(text string) (string, error) {
+	// split into lines
+	lines := splitNoEmpty(text, "\n")
+	// parse lines into opponent/you
+	type EncodedRPS struct {
+		Them rune
+		You  rune
+	}
+	encodedStrategy := []EncodedRPS{}
+	for _, line := range lines {
+		encodedStrategy = append(encodedStrategy, EncodedRPS{Them: rune(line[0]), You: rune(line[2])})
+	}
+	// convert into nicer enum representation
+	type RPSEnum int
+	const (
+		Rock RPSEnum = iota
+		Paper
+		Scissors
+	)
+	type RPS struct {
+		Them RPSEnum
+		You  RPSEnum
+	}
+	strategy := []RPS{}
+	for _, encoded := range encodedStrategy {
+		rps := RPS{}
+		switch encoded.Them {
+		case 'A':
+			rps.Them = Rock
+		case 'B':
+			rps.Them = Paper
+		case 'C':
+			rps.Them = Scissors
+		default:
+			return "", fmt.Errorf("unable to match %v to an RPS selection for them: %w", encoded.Them, ErrNoRPSEnumForRune)
+		}
+		switch encoded.You {
+		case 'X':
+			rps.You = Rock
+		case 'Y':
+			rps.You = Paper
+		case 'Z':
+			rps.You = Scissors
+		default:
+			return "", fmt.Errorf("unable to match %v to an RPS selection for you: %w", encoded.You, ErrNoRPSEnumForRune)
+		}
+		strategy = append(strategy, rps)
+	}
+	// enhance with outcome of encounters
+	type RPSOutcome int
+	const (
+		Lost RPSOutcome = iota
+		Tied
+		Won
+	)
+	type EvaluatedRPS struct {
+		RPS     RPS
+		Outcome RPSOutcome
+	}
+	evaluatedStrategy := []EvaluatedRPS{}
+	for _, rps := range strategy {
+		evaluated := EvaluatedRPS{RPS: rps}
+		switch rps.Them {
+		case Rock:
+			switch rps.You {
+			case Rock:
+				evaluated.Outcome = Tied
+			case Paper:
+				evaluated.Outcome = Won
+			case Scissors:
+				evaluated.Outcome = Lost
+			default:
+				return "", fmt.Errorf("unable to evaluate the outcome of a match when you chose %v: %w", rps.You, ErrUnrecognizedRPSEnum)
+			}
+		case Paper:
+			switch rps.You {
+			case Rock:
+				evaluated.Outcome = Lost
+			case Paper:
+				evaluated.Outcome = Tied
+			case Scissors:
+				evaluated.Outcome = Won
+			default:
+				return "", fmt.Errorf("unable to evaluate the outcome of a match when you chose %v: %w", rps.You, ErrUnrecognizedRPSEnum)
+			}
+		case Scissors:
+			switch rps.You {
+			case Rock:
+				evaluated.Outcome = Won
+			case Paper:
+				evaluated.Outcome = Lost
+			case Scissors:
+				evaluated.Outcome = Tied
+			default:
+				return "", fmt.Errorf("unable to evaluate the outcome of a match when you chose %v: %w", rps.You, ErrUnrecognizedRPSEnum)
+			}
+		default:
+			return "", fmt.Errorf("unable to evaluate the outcome of a match when they chose %v: %w", rps.Them, ErrUnrecognizedRPSEnum)
+		}
+		evaluatedStrategy = append(evaluatedStrategy, evaluated)
+	}
+	// enhance with scores
+	type ScoredRPS struct {
+		Evaluated EvaluatedRPS
+		Score     int
+	}
+	scoredStrategy := []ScoredRPS{}
+	for _, evaluated := range evaluatedStrategy {
+		score := 0
+		// score selection
+		switch evaluated.RPS.You {
+		case Rock:
+			score += 1
+		case Paper:
+			score += 2
+		case Scissors:
+			score += 3
+		default:
+			return "", fmt.Errorf("unable to score the outcome of a match when you chose %v: %w", evaluated.RPS.You, ErrUnrecognizedRPSEnum)
+		}
+		// score outcome
+		switch evaluated.Outcome {
+		case Lost:
+			score += 0
+		case Tied:
+			score += 3
+		case Won:
+			score += 6
+		default:
+			return "", fmt.Errorf("unable to score the outcome of a match when the outcome was %v: %w", evaluated.Outcome, ErrUnrecognizedRPSOutcome)
+		}
+		scoredStrategy = append(scoredStrategy, ScoredRPS{Evaluated: evaluated, Score: score})
+	}
+	// reduce to scores
+	scores := []int{}
+	for _, scored := range scoredStrategy {
+		scores = append(scores, scored.Score)
+	}
+	// sum them
+	total := sum(scores)
+
+	return fmt.Sprintf("%d", total), nil
+}
+
 var ErrNoMaxPossible = fmt.Errorf("no max possible: input list was empty")
 
 func max(list []int) (int, error) {

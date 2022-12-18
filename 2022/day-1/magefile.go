@@ -82,7 +82,7 @@ func Monitor() error {
 // Run all checks on the code
 func Check() error {
 	fmt.Println("Checking...")
-	for _, cmd := range []func() error{Tidy, Lint, Test, Fuzz} {
+	for _, cmd := range []func() error{Tidy, Test, Lint, Fuzz} {
 		err := cmd()
 		if err != nil {
 			return fmt.Errorf("unable to finish checking: %w", err)
