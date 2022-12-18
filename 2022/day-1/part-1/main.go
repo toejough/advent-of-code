@@ -4,19 +4,43 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 )
 
 func main() {
 	// read input
-	filename := os.Args[1]
+	day := os.Args[1]
+	part := os.Args[2]
+
+	filename := fmt.Sprintf("%s-input-puzzle.txt", day)
 	text := mustReadFileText(filename)
 
 	// solve
-	answer, err := solve(text)
-	if err != nil {
-		panic(err)
+	var (
+		answer string
+		err    error
+	)
+
+	switch day {
+	case "day1":
+		switch part {
+		case "part1":
+			answer, err = solveDay1Part1(text)
+			if err != nil {
+				panic(err)
+			}
+		case "part2":
+			answer, err = solveDay1Part2(text)
+			if err != nil {
+				panic(err)
+			}
+		default:
+			log.Fatalf("No solver for %s %s", day, part)
+		}
+	default:
+		log.Fatalf("No solvers for %s ", day)
 	}
 
 	// final
@@ -49,7 +73,7 @@ func splitNoEmpty(s string, sep string) []string {
 	return noEmpty
 }
 
-func solve(text string) (string, error) {
+func solveDay1Part1(text string) (string, error) {
 	// split into lists of calories
 	hunks := splitNoEmpty(text, "\n\n")
 	stringLists := splitHunks(hunks)
@@ -69,6 +93,31 @@ func solve(text string) (string, error) {
 	}
 
 	return fmt.Sprintf("%d", max), nil
+}
+
+func solveDay1Part2(text string) (string, error) {
+	// split into lists of calories
+	hunks := splitNoEmpty(text, "\n\n")
+	stringLists := splitHunks(hunks)
+
+	lists, err := convListsOfStringsToListsOfInts(stringLists)
+	if err != nil {
+		return "", err
+	}
+
+	// sum the lists
+	sums := sumLists(lists)
+
+	// sort
+	sort.Ints(sums)
+
+	// top 3
+	top3 := sums[len(sums)-3:]
+
+	// sum
+	total := sum(top3)
+
+	return fmt.Sprintf("%d", total), nil
 }
 
 var ErrNoMaxPossible = fmt.Errorf("no max possible: input list was empty")
