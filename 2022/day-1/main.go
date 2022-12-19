@@ -95,6 +95,8 @@ func solveDay1Part1(text string) (string, error) {
 	return fmt.Sprintf("%d", max), nil
 }
 
+var ErrNotEnoughItems = fmt.Errorf("not enough items")
+
 func solveDay1Part2(text string) (string, error) {
 	// split into lists of calories
 	hunks := splitNoEmpty(text, "\n\n")
@@ -112,7 +114,12 @@ func solveDay1Part2(text string) (string, error) {
 	sort.Ints(sums)
 
 	// top 3
-	top3 := sums[len(sums)-3:]
+	const numbersToSum = 3
+	if len(sums) < numbersToSum {
+		return "", fmt.Errorf("can't take the top three of a list of only %d: %w", len(sums), ErrNotEnoughItems)
+	}
+
+	top3 := sums[len(sums)-numbersToSum:]
 
 	// sum
 	total := sum(top3)
@@ -166,7 +173,10 @@ func solveDay2Part1(text string) (string, error) {
 	// split into lines
 	lines := splitNoEmpty(text, "\n")
 	// parse lines into opponent/you
-	encodedMatches := parseEncodedMatchLines(lines)
+	encodedMatches, err := parseEncodedMatchLines(lines)
+	if err != nil {
+		return "", fmt.Errorf("unable to solve after match parsing failure: %w", err)
+	}
 	// convert into nicer enum representation
 	matches, err := decodeMatches(encodedMatches)
 	if err != nil {
@@ -369,14 +379,19 @@ func decodeMatches(encodedStrategy []EncodedRPS) ([]RPSMatch, error) {
 	return strategy, nil
 }
 
-func parseEncodedMatchLines(lines []string) []EncodedRPS {
+func parseEncodedMatchLines(lines []string) ([]EncodedRPS, error) {
 	encodedStrategy := []EncodedRPS{}
 
-	for _, line := range lines {
+	const runesToExpect = 3
+	for i, line := range lines {
+		if len(line) < runesToExpect {
+			return nil, fmt.Errorf("unable to parse line %d, because it only has %d runes: %w", i, len(line), ErrNotEnoughItems)
+		}
+
 		encodedStrategy = append(encodedStrategy, EncodedRPS{Them: rune(line[0]), You: rune(line[2])})
 	}
 
-	return encodedStrategy
+	return encodedStrategy, nil
 }
 
 var ErrNoMaxPossible = fmt.Errorf("no max possible: input list was empty")
