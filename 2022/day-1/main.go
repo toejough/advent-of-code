@@ -126,138 +126,61 @@ var (
 	ErrUnrecognizedRPSOutcome = fmt.Errorf("unrecognized RPS outcome enum")
 )
 
+type EncodedRPS struct {
+	Them rune
+	You  rune
+}
+
+type RPSEnum int
+
+const (
+	Rock RPSEnum = iota
+	Paper
+	Scissors
+)
+
+type RPSMatch struct {
+	Them RPSEnum
+	You  RPSEnum
+}
+
+type RPSOutcome int
+
+const (
+	Lost RPSOutcome = iota
+	Tied
+	Won
+)
+
+type DecidedRPSMatch struct {
+	RPS     RPSMatch
+	Outcome RPSOutcome
+}
+
+type ScoredRPS struct {
+	Evaluated DecidedRPSMatch
+	Score     int
+}
+
 func solveDay2Part1(text string) (string, error) {
 	// split into lines
 	lines := splitNoEmpty(text, "\n")
 	// parse lines into opponent/you
-	type EncodedRPS struct {
-		Them rune
-		You  rune
-	}
-	encodedStrategy := []EncodedRPS{}
-	for _, line := range lines {
-		encodedStrategy = append(encodedStrategy, EncodedRPS{Them: rune(line[0]), You: rune(line[2])})
-	}
+	encodedMatches := parseEncodedMatchLines(lines)
 	// convert into nicer enum representation
-	type RPSEnum int
-	const (
-		Rock RPSEnum = iota
-		Paper
-		Scissors
-	)
-	type RPS struct {
-		Them RPSEnum
-		You  RPSEnum
-	}
-	strategy := []RPS{}
-	for _, encoded := range encodedStrategy {
-		rps := RPS{}
-		switch encoded.Them {
-		case 'A':
-			rps.Them = Rock
-		case 'B':
-			rps.Them = Paper
-		case 'C':
-			rps.Them = Scissors
-		default:
-			return "", fmt.Errorf("unable to match %v to an RPS selection for them: %w", encoded.Them, ErrNoRPSEnumForRune)
-		}
-		switch encoded.You {
-		case 'X':
-			rps.You = Rock
-		case 'Y':
-			rps.You = Paper
-		case 'Z':
-			rps.You = Scissors
-		default:
-			return "", fmt.Errorf("unable to match %v to an RPS selection for you: %w", encoded.You, ErrNoRPSEnumForRune)
-		}
-		strategy = append(strategy, rps)
+	matches, err := decodeMatches(encodedMatches)
+	if err != nil {
+		return "", fmt.Errorf("unable to solve after match decoding failure: %w", err)
 	}
 	// enhance with outcome of encounters
-	type RPSOutcome int
-	const (
-		Lost RPSOutcome = iota
-		Tied
-		Won
-	)
-	type EvaluatedRPS struct {
-		RPS     RPS
-		Outcome RPSOutcome
-	}
-	evaluatedStrategy := []EvaluatedRPS{}
-	for _, rps := range strategy {
-		evaluated := EvaluatedRPS{RPS: rps}
-		switch rps.Them {
-		case Rock:
-			switch rps.You {
-			case Rock:
-				evaluated.Outcome = Tied
-			case Paper:
-				evaluated.Outcome = Won
-			case Scissors:
-				evaluated.Outcome = Lost
-			default:
-				return "", fmt.Errorf("unable to evaluate the outcome of a match when you chose %v: %w", rps.You, ErrUnrecognizedRPSEnum)
-			}
-		case Paper:
-			switch rps.You {
-			case Rock:
-				evaluated.Outcome = Lost
-			case Paper:
-				evaluated.Outcome = Tied
-			case Scissors:
-				evaluated.Outcome = Won
-			default:
-				return "", fmt.Errorf("unable to evaluate the outcome of a match when you chose %v: %w", rps.You, ErrUnrecognizedRPSEnum)
-			}
-		case Scissors:
-			switch rps.You {
-			case Rock:
-				evaluated.Outcome = Won
-			case Paper:
-				evaluated.Outcome = Lost
-			case Scissors:
-				evaluated.Outcome = Tied
-			default:
-				return "", fmt.Errorf("unable to evaluate the outcome of a match when you chose %v: %w", rps.You, ErrUnrecognizedRPSEnum)
-			}
-		default:
-			return "", fmt.Errorf("unable to evaluate the outcome of a match when they chose %v: %w", rps.Them, ErrUnrecognizedRPSEnum)
-		}
-		evaluatedStrategy = append(evaluatedStrategy, evaluated)
+	decidedMatches, err := decideMatches(matches)
+	if err != nil {
+		return "", fmt.Errorf("unable to solve after match decision failure: %w", err)
 	}
 	// enhance with scores
-	type ScoredRPS struct {
-		Evaluated EvaluatedRPS
-		Score     int
-	}
-	scoredStrategy := []ScoredRPS{}
-	for _, evaluated := range evaluatedStrategy {
-		score := 0
-		// score selection
-		switch evaluated.RPS.You {
-		case Rock:
-			score += 1
-		case Paper:
-			score += 2
-		case Scissors:
-			score += 3
-		default:
-			return "", fmt.Errorf("unable to score the outcome of a match when you chose %v: %w", evaluated.RPS.You, ErrUnrecognizedRPSEnum)
-		}
-		// score outcome
-		switch evaluated.Outcome {
-		case Lost:
-			score += 0
-		case Tied:
-			score += 3
-		case Won:
-			score += 6
-		default:
-			return "", fmt.Errorf("unable to score the outcome of a match when the outcome was %v: %w", evaluated.Outcome, ErrUnrecognizedRPSOutcome)
-		}
-		scoredStrategy = append(scoredStrategy, ScoredRPS{Evaluated: evaluated, Score: score})
+	scoredStrategy, err := scoreRPSMatches(decidedMatches)
+	if err != nil {
+		return "", fmt.Errorf("unable to solve after scoring failure: %w", err)
 	}
 	// reduce to scores
 	scores := []int{}
@@ -268,6 +191,192 @@ func solveDay2Part1(text string) (string, error) {
 	total := sum(scores)
 
 	return fmt.Sprintf("%d", total), nil
+}
+
+func scoreRPSMatches(decidedMatches []DecidedRPSMatch) ([]ScoredRPS, error) {
+	scoredStrategy := []ScoredRPS{}
+
+	for _, evaluated := range decidedMatches {
+		score := 0
+
+		// score on choice
+		switch evaluated.RPS.You {
+		case Rock:
+			score++
+		case Paper:
+			score += 2
+		case Scissors:
+			score += 3
+		default:
+			return nil, fmt.Errorf(
+				"unable to score the outcome of a match when you chose %v: %w",
+				evaluated.RPS.You,
+				ErrUnrecognizedRPSEnum,
+			)
+		}
+
+		// score on outcome
+		switch evaluated.Outcome {
+		case Lost:
+			score += 0
+		case Tied:
+			score += 3
+		case Won:
+			score += 6
+		default:
+			return nil, fmt.Errorf(
+				"unable to score the outcome of a match when the outcome was %v: %w",
+				evaluated.Outcome,
+				ErrUnrecognizedRPSOutcome,
+			)
+		}
+
+		scoredStrategy = append(scoredStrategy, ScoredRPS{Evaluated: evaluated, Score: score})
+	}
+
+	return scoredStrategy, nil
+}
+
+func decideMatches(matches []RPSMatch) ([]DecidedRPSMatch, error) {
+	decidedMatches := []DecidedRPSMatch{}
+
+	for i, rps := range matches {
+		decidedMatch, err := decideRPSMatch(rps)
+		if err != nil {
+			return nil, fmt.Errorf("unable to decide matches after failure with match %d: %w", i, err)
+		}
+
+		decidedMatches = append(decidedMatches, decidedMatch)
+	}
+
+	return decidedMatches, nil
+}
+
+func decideRPSMatch(rps RPSMatch) (DecidedRPSMatch, error) {
+	decidedMatch := DecidedRPSMatch{RPS: rps, Outcome: Lost}
+
+	var (
+		result RPSOutcome
+		err    error
+	)
+
+	switch rps.Them {
+	case Rock:
+		result, err = decideVsRock(rps.You)
+	case Paper:
+		result, err = decideVsPaper(rps.You)
+	case Scissors:
+		result, err = decideVsScissors(rps.You)
+	default:
+		return DecidedRPSMatch{}, fmt.Errorf(
+			"unable to evaluate the outcome of a match when they chose %v: %w",
+			rps.Them,
+			ErrUnrecognizedRPSEnum,
+		)
+	}
+
+	if err != nil {
+		return decidedMatch, fmt.Errorf("unable to decide match: %w", err)
+	}
+
+	decidedMatch.Outcome = result
+
+	return decidedMatch, nil
+}
+
+func decideVsRock(you RPSEnum) (RPSOutcome, error) {
+	switch you {
+	case Rock:
+		return Tied, nil
+	case Paper:
+		return Won, nil
+	case Scissors:
+		return Lost, nil
+	default:
+		return Lost, fmt.Errorf(
+			"unable to evaluate the outcome of a match when you chose %v: %w",
+			you,
+			ErrUnrecognizedRPSEnum,
+		)
+	}
+}
+
+func decideVsPaper(you RPSEnum) (RPSOutcome, error) {
+	switch you {
+	case Rock:
+		return Lost, nil
+	case Paper:
+		return Tied, nil
+	case Scissors:
+		return Won, nil
+	default:
+		return Lost, fmt.Errorf(
+			"unable to evaluate the outcome of a match when you chose %v: %w",
+			you,
+			ErrUnrecognizedRPSEnum,
+		)
+	}
+}
+
+func decideVsScissors(you RPSEnum) (RPSOutcome, error) {
+	switch you {
+	case Rock:
+		return Won, nil
+	case Paper:
+		return Lost, nil
+	case Scissors:
+		return Tied, nil
+	default:
+		return Lost, fmt.Errorf(
+			"unable to evaluate the outcome of a match when you chose %v: %w",
+			you,
+			ErrUnrecognizedRPSEnum,
+		)
+	}
+}
+
+func decodeMatches(encodedStrategy []EncodedRPS) ([]RPSMatch, error) {
+	strategy := []RPSMatch{}
+
+	for _, encoded := range encodedStrategy {
+		rps := RPSMatch{Them: Rock, You: Rock}
+
+		switch encoded.Them {
+		case 'A':
+			rps.Them = Rock
+		case 'B':
+			rps.Them = Paper
+		case 'C':
+			rps.Them = Scissors
+		default:
+			return nil, fmt.Errorf("unable to match %v to an RPS selection for them: %w", encoded.Them, ErrNoRPSEnumForRune)
+		}
+
+		switch encoded.You {
+		case 'X':
+			rps.You = Rock
+		case 'Y':
+			rps.You = Paper
+		case 'Z':
+			rps.You = Scissors
+		default:
+			return nil, fmt.Errorf("unable to match %v to an RPS selection for you: %w", encoded.You, ErrNoRPSEnumForRune)
+		}
+
+		strategy = append(strategy, rps)
+	}
+
+	return strategy, nil
+}
+
+func parseEncodedMatchLines(lines []string) []EncodedRPS {
+	encodedStrategy := []EncodedRPS{}
+
+	for _, line := range lines {
+		encodedStrategy = append(encodedStrategy, EncodedRPS{Them: rune(line[0]), You: rune(line[2])})
+	}
+
+	return encodedStrategy
 }
 
 var ErrNoMaxPossible = fmt.Errorf("no max possible: input list was empty")
