@@ -25,7 +25,7 @@ func main() {
 
 	switch day {
 	case "day1":
-		answer, err = solveDay1(part, day, text)
+		answer, err = solveDay1(part, text)
 	case "day2":
 		switch part {
 		case "part1":
@@ -50,14 +50,14 @@ func main() {
 
 var ErrMissingSolver = fmt.Errorf("missing solver")
 
-func solveDay1(part string, day string, text string) (string, error) {
+func solveDay1(part string, text string) (string, error) {
 	switch part {
 	case "part1":
 		return solveDay1Part1(text)
 	case "part2":
 		return solveDay1Part2(text)
 	default:
-		return "", fmt.Errorf("no solver for %s %s: %w", day, part, ErrMissingSolver)
+		return "", fmt.Errorf("no solver for day1 %s: %w", part, ErrMissingSolver)
 	}
 }
 
