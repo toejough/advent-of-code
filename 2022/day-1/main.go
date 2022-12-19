@@ -25,14 +25,11 @@ func main() {
 
 	switch day {
 	case "day1":
+		answer, err = solveDay1(part, day, text)
+	case "day2":
 		switch part {
 		case "part1":
-			answer, err = solveDay1Part1(text)
-			if err != nil {
-				panic(err)
-			}
-		case "part2":
-			answer, err = solveDay1Part2(text)
+			answer, err = solveDay2Part1(text)
 			if err != nil {
 				panic(err)
 			}
@@ -43,8 +40,25 @@ func main() {
 		log.Fatalf("No solvers for %s ", day)
 	}
 
+	if err != nil {
+		panic(err)
+	}
+
 	// final
 	log.Printf("Answer: %s", answer)
+}
+
+var ErrMissingSolver = fmt.Errorf("missing solver")
+
+func solveDay1(part string, day string, text string) (string, error) {
+	switch part {
+	case "part1":
+		return solveDay1Part1(text)
+	case "part2":
+		return solveDay1Part2(text)
+	default:
+		return "", fmt.Errorf("no solver for %s %s: %w", day, part, ErrMissingSolver)
+	}
 }
 
 func mustReadFileText(filename string) string {
