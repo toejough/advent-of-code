@@ -174,7 +174,8 @@ const (
 )
 
 type DecidedRPSMatch struct {
-	RPS     RPSMatch
+	Them RPSEnum
+	You  RPSEnum
 	Outcome RPSOutcome
 }
 
@@ -217,6 +218,40 @@ func solveDay2Part1(text string) (string, error) {
 	return fmt.Sprintf("%d", total), nil
 }
 
+func solveDay2Part2(text string) (string, error) {
+    return  "", nil
+	//// split into lines
+	//lines := splitNoEmpty(text, "\n")
+	//// parse lines into opponent/you
+	//encodedMatches, err := parseEncodedMatchLines(lines)
+	//if err != nil {
+	//    return "", fmt.Errorf("unable to solve after match parsing failure: %w", err)
+	//}
+	//// convert into nicer enum representation
+	//decidedMatches, err := decodeMatchesAsOutcomes(encodedMatches)
+	//if err != nil {
+	//    return "", fmt.Errorf("unable to solve after match decoding failure: %w", err)
+	//}
+	//// enhance with roll to reach outcome
+	//deducedMoves, err := deduceMoves(matches)
+	//if err != nil {
+	//    return "", fmt.Errorf("unable to solve after match decision failure: %w", err)
+	//}
+	//// enhance with scores
+	//scoredStrategy, err := scoreRPSMatches(deducedMoves)
+	//if err != nil {
+	//    return "", fmt.Errorf("unable to solve after scoring failure: %w", err)
+	//}
+	//// reduce to scores
+	//scores := []int{}
+	//for _, scored := range scoredStrategy {
+	//    scores = append(scores, scored.Score)
+	//}
+	//// sum them
+	//total := sum(scores)
+
+	//return fmt.Sprintf("%d", total), nil
+}
 func scoreRPSMatches(decidedMatches []DecidedRPSMatch) ([]ScoredRPS, error) {
 	scoredStrategy := []ScoredRPS{}
 
@@ -224,7 +259,7 @@ func scoreRPSMatches(decidedMatches []DecidedRPSMatch) ([]ScoredRPS, error) {
 		score := 0
 
 		// score on choice
-		switch evaluated.RPS.You {
+		switch evaluated.You {
 		case Rock:
 			score++
 		case Paper:
@@ -234,7 +269,7 @@ func scoreRPSMatches(decidedMatches []DecidedRPSMatch) ([]ScoredRPS, error) {
 		default:
 			return nil, fmt.Errorf(
 				"unable to score the outcome of a match when you chose %v: %w",
-				evaluated.RPS.You,
+				evaluated.You,
 				ErrUnrecognizedRPSEnum,
 			)
 		}
@@ -277,7 +312,7 @@ func decideMatches(matches []RPSMatch) ([]DecidedRPSMatch, error) {
 }
 
 func decideRPSMatch(rps RPSMatch) (DecidedRPSMatch, error) {
-	decidedMatch := DecidedRPSMatch{RPS: rps, Outcome: Lost}
+	decidedMatch := DecidedRPSMatch{Them: rps.Them, You: rps.You, Outcome: Lost}
 
 	var (
 		result RPSOutcome

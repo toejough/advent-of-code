@@ -18,6 +18,7 @@ func TestDay1(t *testing.T) {
 		"day1-part2-puzzle":  {filename: "day1-input-puzzle.txt", solver: solveDay1Part2, result: "206152"},
 		"day2-part1-example": {filename: "day2-input-example.txt", solver: solveDay2Part1, result: "15"},
 		"day2-part1-puzzle":  {filename: "day2-input-puzzle.txt", solver: solveDay2Part1, result: "13809"},
+		"day2-part2-example": {filename: "day2-input-example.txt", solver: solveDay2Part2, result: "12"},
 	}
 
 	for name, tc := range tests {
