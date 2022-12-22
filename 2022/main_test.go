@@ -78,3 +78,14 @@ func FuzzDay2Part1(f *testing.F) {
 		// THEN the run is expected to return just fine.
 	})
 }
+
+func FuzzDay2Part2(f *testing.F) {
+	f.Add(mustReadFileText("day2-input-example.txt"))
+
+	f.Fuzz(func(_ *testing.T, s string) {
+		// WHEN the program is called with the input
+		_, _ = solveDay2Part2(s)
+
+		// THEN the run is expected to return just fine.
+	})
+}
