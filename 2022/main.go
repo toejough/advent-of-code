@@ -23,7 +23,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	// final
+	// print output
 	log.Printf("Answer: %s", answer)
 }
 
