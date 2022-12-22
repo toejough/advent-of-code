@@ -33,6 +33,11 @@ func main() {
 			if err != nil {
 				panic(err)
 			}
+		case "part2":
+			answer, err = solveDay2Part2(text)
+			if err != nil {
+				panic(err)
+			}
 		default:
 			log.Fatalf("No solver for %s %s", day, part)
 		}
