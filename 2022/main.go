@@ -18,53 +18,46 @@ func main() {
 	text := mustReadFileText(filename)
 
 	// solve
-	var (
-		answer string
-		err    error
-	)
-
-	switch day {
-	case "day1":
-		answer, err = solveDay1(part, text)
-	case "day2":
-		switch part {
-		case "part1":
-			answer, err = solveDay2Part1(text)
-			if err != nil {
-				panic(err)
-			}
-		case "part2":
-			answer, err = solveDay2Part2(text)
-			if err != nil {
-				panic(err)
-			}
-		default:
-			log.Fatalf("No solver for %s %s", day, part)
-		}
-	default:
-		log.Fatalf("No solvers for %s ", day)
-	}
-
+	answer, err := solve(day, part, text)
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 
 	// final
 	log.Printf("Answer: %s", answer)
 }
 
-var ErrMissingSolver = fmt.Errorf("missing solver")
-
-func solveDay1(part string, text string) (string, error) {
-	switch part {
-	case "part1":
-		return solveDay1Part1(text)
-	case "part2":
-		return solveDay1Part2(text)
-	default:
-		return "", fmt.Errorf("no solver for day1 %s: %w", part, ErrMissingSolver)
+func solve(day string, part string, text string) (string, error) {
+	solverMap := map[string]map[string]func(string) (string, error){
+		"day1": {
+			"part1": solveDay1Part1,
+			"part2": solveDay1Part2,
+		},
+		"day2": {
+			"part1": solveDay2Part1,
+			"part2": solveDay2Part2,
+		},
 	}
+
+	partMap, dayOk := solverMap[day]
+	if !dayOk {
+		return "", fmt.Errorf("cannot solve day %s: %w", day, ErrMissingSolver)
+	}
+
+	solver, partOk := partMap[part]
+	if !partOk {
+		return "", fmt.Errorf("cannot solve day %s part %s: %w", day, part, ErrMissingSolver)
+	}
+
+	answer, err := solver(text)
+	if err != nil {
+		return "", fmt.Errorf("solving failed: %w", err)
+	}
+
+	return answer, nil
 }
+
+var ErrMissingSolver = fmt.Errorf("missing solver")
 
 func mustReadFileText(filename string) string {
 	bytes, err := os.ReadFile(filename)
