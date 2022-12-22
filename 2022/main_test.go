@@ -1,10 +1,12 @@
 package main
 
 import (
+	"fmt"
+	"strings"
 	"testing"
 )
 
-func TestDay1(t *testing.T) {
+func TestAnswers(t *testing.T) {
 	t.Parallel()
 
 	tests := map[string]struct {
@@ -12,23 +14,26 @@ func TestDay1(t *testing.T) {
 		solver   func(string) (string, error)
 		result   string
 	}{
-		"day1-part1-example": {filename: "day1-input-example.txt", solver: solveDay1Part1, result: "24000"},
-		"day1-part1-puzzle":  {filename: "day1-input-puzzle.txt", solver: solveDay1Part1, result: "69528"},
-		"day1-part2-example": {filename: "day1-input-example.txt", solver: solveDay1Part2, result: "45000"},
-		"day1-part2-puzzle":  {filename: "day1-input-puzzle.txt", solver: solveDay1Part2, result: "206152"},
-		"day2-part1-example": {filename: "day2-input-example.txt", solver: solveDay2Part1, result: "15"},
-		"day2-part1-puzzle":  {filename: "day2-input-puzzle.txt", solver: solveDay2Part1, result: "13809"},
-		"day2-part2-example": {filename: "day2-input-example.txt", solver: solveDay2Part2, result: "12"},
-		"day2-part2-puzzle":  {filename: "day2-input-puzzle.txt", solver: solveDay2Part2, result: "12316"},
+		"day1-part1-example": {solver: solveDay1Part1, result: "24000"},
+		"day1-part1-puzzle":  {solver: solveDay1Part1, result: "69528"},
+		"day1-part2-example": {solver: solveDay1Part2, result: "45000"},
+		"day1-part2-puzzle":  {solver: solveDay1Part2, result: "206152"},
+		"day2-part1-example": {solver: solveDay2Part1, result: "15"},
+		"day2-part1-puzzle":  {solver: solveDay2Part1, result: "13809"},
+		"day2-part2-example": {solver: solveDay2Part2, result: "12"},
+		"day2-part2-puzzle":  {solver: solveDay2Part2, result: "12316"},
 	}
 
 	for name, tc := range tests {
 		testCase := tc
+		testCaseName := name
 
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
+			testNameParts := strings.Split(testCaseName, "-")
+			filename := fmt.Sprintf("%s-input-%s.txt", testNameParts[0], testNameParts[2])
 
-			text := mustReadFileText(testCase.filename)
+			text := mustReadFileText(filename)
 			expectedOutput := testCase.result
 
 			actualOutput, err := testCase.solver(text)
