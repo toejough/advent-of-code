@@ -166,3 +166,9 @@ func Fuzz() error {
 	return sh.RunV("./fuzz.fish")
 }
 
+// Commit with nice text
+func Commit() error {
+	fmt.Println("Committing changes...")
+	return sh.RunV("./commit.fish")
+}
+
