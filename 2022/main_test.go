@@ -65,8 +65,10 @@ func FuzzDay1Part1(f *testing.F) {
 		if err != nil {
 			log.Fatal(err)
 		}
+
 		f.Add(text)
 	}
+
 	f.Fuzz(func(_ *testing.T, s string) {
 		// WHEN the program is called with the input
 		_, _ = solveDay1Part1(s)
@@ -81,8 +83,10 @@ func FuzzDay1Part2(f *testing.F) {
 		if err != nil {
 			log.Fatal(err)
 		}
+
 		f.Add(text)
 	}
+
 	f.Fuzz(func(_ *testing.T, s string) {
 		// WHEN the program is called with the input
 		_, _ = solveDay1Part2(s)
@@ -97,6 +101,7 @@ func FuzzDay2Part1(f *testing.F) {
 		if err != nil {
 			log.Fatal(err)
 		}
+
 		f.Add(text)
 	}
 
@@ -108,12 +113,15 @@ func FuzzDay2Part1(f *testing.F) {
 	})
 }
 
+// TODO abstract the fuzz test internals - they're all the same
+
 func FuzzDay2Part2(f *testing.F) {
 	for _, inputType := range []string{"example", "puzzle"} {
 		text, err := readFileText(fmt.Sprintf("day2-input-%s.txt", inputType))
 		if err != nil {
 			log.Fatal(err)
 		}
+
 		f.Add(text)
 	}
 

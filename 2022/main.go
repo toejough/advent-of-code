@@ -15,6 +15,7 @@ func main() {
 	part := os.Args[2]
 
 	filename := fmt.Sprintf("%s-input-puzzle.txt", day)
+
 	text, err := readFileText(filename)
 	if err != nil {
 		log.Fatal(err)
@@ -293,11 +294,14 @@ func solveDay3Part1(text string) (string, error) {
 
 func scoreRucksackItems(commonItems []rune) (scores []int, err error) {
 	for i, r := range commonItems {
-		s, err := scoreRucksackItem(r)
+		var score int
+
+		score, err = scoreRucksackItem(r)
 		if err != nil {
 			return nil, fmt.Errorf("unable to score rucksack item %d: %w", i, err)
 		}
-		scores = append(scores, s)
+
+		scores = append(scores, score)
 	}
 
 	return
@@ -308,23 +312,32 @@ var ErrNoScoreMappedForItem = fmt.Errorf("no score mapped for item")
 // TODO: reevaluate error best practices - fmt vs err, structured errors from go 1.20?
 // TODO: some kind of apply / reduce function? doing that a lot. Look at that go monads library for inspiration?
 
-func scoreRucksackItem(r rune) (score int, err error) {
-	if r >= 'a' && r <= 'z' {
-		distance := r - 'a'
-		score = 1 + int(distance)
+func scoreRucksackItem(item rune) (score int, err error) {
+	const (
+		lowercaseStartingScore = 1
+		uppercaseStartingScore = 27
+	)
+
+	if item >= 'a' && item <= 'z' {
+		distance := item - 'a'
+		score = lowercaseStartingScore + int(distance)
+
 		return score, nil
-	} else if r >= 'A' && r <= 'Z' {
-		distance := r - 'A'
-		score = 27 + int(distance)
+	} else if item >= 'A' && item <= 'Z' {
+		distance := item - 'A'
+		score = uppercaseStartingScore + int(distance)
+
 		return score, nil
 	}
 
-	return score, fmt.Errorf("unable to score %#v: %w", r, ErrNoScoreMappedForItem)
+	return score, fmt.Errorf("unable to score %#v: %w", item, ErrNoScoreMappedForItem)
 }
 
 func reduceToCommonItems(rucksacks []rucksack) (commonItems []rune, err error) {
 	for i, r := range rucksacks {
-		commonItem, err := reduceToCommonItem(r)
+		var commonItem rune
+
+		commonItem, err = reduceToCommonItem(r)
 		if err != nil {
 			return nil, fmt.Errorf("unable to reduce rucksack %d: %w", i, err)
 		}
@@ -337,13 +350,19 @@ func reduceToCommonItems(rucksacks []rucksack) (commonItems []rune, err error) {
 
 var ErrNoCommonItemFound = fmt.Errorf("no common item found")
 
-func reduceToCommonItem(r rucksack) (item rune, err error) {
-	for _, item := range r.compartment1.items {
-		if contains(r.compartment2.items, item) {
+func reduceToCommonItem(sack rucksack) (item rune, err error) {
+	for _, item := range sack.compartment1.items {
+		if contains(sack.compartment2.items, item) {
 			return item, nil
 		}
 	}
-	return item, fmt.Errorf("unable to reduce to common item between %v and %v: %w", r.compartment1.items, r.compartment2.items, ErrNoCommonItemFound)
+
+	return item, fmt.Errorf(
+		"unable to reduce to common item between %v and %v: %w",
+		sack.compartment1.items,
+		sack.compartment2.items,
+		ErrNoCommonItemFound,
+	)
 }
 
 func contains(r []rune, item rune) bool {
@@ -366,12 +385,14 @@ type rucksack struct {
 
 func parseRucksackLines(lines []string) (rucksacks []rucksack, err error) {
 	for i, line := range lines {
-		r, err := parseRucksackLine(line)
+		var sack rucksack
+
+		sack, err = parseRucksackLine(line)
 		if err != nil {
 			return nil, fmt.Errorf("unable to parse rucksack line %d: %w", i, err)
 		}
 
-		rucksacks = append(rucksacks, r)
+		rucksacks = append(rucksacks, sack)
 	}
 
 	return
@@ -381,7 +402,10 @@ var ErrOddRucksackLength = fmt.Errorf("odd rucksack item count")
 
 func parseRucksackLine(line string) (r rucksack, err error) {
 	size := len(line)
-	compartmentSize := size / 2
+
+	const numCompartments = 2
+
+	compartmentSize := size / numCompartments
 	if size != compartmentSize*2 {
 		return r, fmt.Errorf("unable to parse rucksack line with length (%d): %w", size, ErrOddRucksackLength)
 	}
