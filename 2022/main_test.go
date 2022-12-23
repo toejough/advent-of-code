@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"strings"
 	"testing"
 )
@@ -20,6 +21,7 @@ func TestAnswers(t *testing.T) {
 		"day2-part1-puzzle":  {result: "13809"},
 		"day2-part2-example": {result: "12"},
 		"day2-part2-puzzle":  {result: "12316"},
+		"day3-part1-example": {result: "157"},
 	}
 
 	for name, tc := range tests {
@@ -34,7 +36,11 @@ func TestAnswers(t *testing.T) {
 			kind := testNameParts[2]
 			filename := fmt.Sprintf("%s-input-%s.txt", day, kind)
 
-			text := mustReadFileText(filename)
+			text, err := readFileText(filename)
+			if err != nil {
+				log.Fatal(err)
+			}
+
 			expectedOutput := testCase.result
 
 			actualOutput, err := solve(day, part, text)
@@ -54,8 +60,13 @@ func TestAnswers(t *testing.T) {
 }
 
 func FuzzDay1Part1(f *testing.F) {
-	f.Add(mustReadFileText("day1-input-example.txt"))
-	f.Add(mustReadFileText("day1-input-puzzle.txt"))
+	for _, inputType := range []string{"example", "puzzle"} {
+		text, err := readFileText(fmt.Sprintf("day1-input-%s.txt", inputType))
+		if err != nil {
+			log.Fatal(err)
+		}
+		f.Add(text)
+	}
 	f.Fuzz(func(_ *testing.T, s string) {
 		// WHEN the program is called with the input
 		_, _ = solveDay1Part1(s)
@@ -65,8 +76,13 @@ func FuzzDay1Part1(f *testing.F) {
 }
 
 func FuzzDay1Part2(f *testing.F) {
-	f.Add(mustReadFileText("day1-input-example.txt"))
-	f.Add(mustReadFileText("day1-input-puzzle.txt"))
+	for _, inputType := range []string{"example", "puzzle"} {
+		text, err := readFileText(fmt.Sprintf("day1-input-%s.txt", inputType))
+		if err != nil {
+			log.Fatal(err)
+		}
+		f.Add(text)
+	}
 	f.Fuzz(func(_ *testing.T, s string) {
 		// WHEN the program is called with the input
 		_, _ = solveDay1Part2(s)
@@ -76,8 +92,13 @@ func FuzzDay1Part2(f *testing.F) {
 }
 
 func FuzzDay2Part1(f *testing.F) {
-	f.Add(mustReadFileText("day2-input-example.txt"))
-	f.Add(mustReadFileText("day2-input-puzzle.txt"))
+	for _, inputType := range []string{"example", "puzzle"} {
+		text, err := readFileText(fmt.Sprintf("day2-input-%s.txt", inputType))
+		if err != nil {
+			log.Fatal(err)
+		}
+		f.Add(text)
+	}
 
 	f.Fuzz(func(_ *testing.T, s string) {
 		// WHEN the program is called with the input
@@ -88,8 +109,13 @@ func FuzzDay2Part1(f *testing.F) {
 }
 
 func FuzzDay2Part2(f *testing.F) {
-	f.Add(mustReadFileText("day2-input-example.txt"))
-	f.Add(mustReadFileText("day2-input-puzzle.txt"))
+	for _, inputType := range []string{"example", "puzzle"} {
+		text, err := readFileText(fmt.Sprintf("day2-input-%s.txt", inputType))
+		if err != nil {
+			log.Fatal(err)
+		}
+		f.Add(text)
+	}
 
 	f.Fuzz(func(_ *testing.T, s string) {
 		// WHEN the program is called with the input

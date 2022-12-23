@@ -15,7 +15,10 @@ func main() {
 	part := os.Args[2]
 
 	filename := fmt.Sprintf("%s-input-puzzle.txt", day)
-	text := mustReadFileText(filename)
+	text, err := readFileText(filename)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	// solve
 	answer, err := solve(day, part, text)
@@ -36,6 +39,10 @@ func solve(day string, part string, text string) (string, error) {
 		"day2": {
 			"part1": solveDay2Part1,
 			"part2": solveDay2Part2,
+		},
+		"day3": {
+			"part1": solveDay3Part1,
+			// "part2": solveDay3Part2,
 		},
 	}
 
@@ -59,15 +66,15 @@ func solve(day string, part string, text string) (string, error) {
 
 var ErrMissingSolver = fmt.Errorf("missing solver")
 
-func mustReadFileText(filename string) string {
+func readFileText(filename string) (string, error) {
 	bytes, err := os.ReadFile(filename)
 	if err != nil {
-		panic(err)
+		return "", fmt.Errorf("couldn't read text from %s: %w", filename, err)
 	}
 
 	text := string(bytes)
 
-	return text
+	return text, nil
 }
 
 func splitNoEmpty(s string, sep string) []string {
@@ -254,6 +261,132 @@ func solveDay2Part2(text string) (string, error) {
 	total := sum(scores)
 
 	return fmt.Sprintf("%d", total), nil
+}
+
+func solveDay3Part1(text string) (string, error) {
+	// split into lines
+	lines := splitNoEmpty(text, "\n")
+
+	// parse lines into contents in compartments
+	rucksacks, err := parseRucksackLines(lines)
+	if err != nil {
+		return "", fmt.Errorf("unable to solve: %w", err)
+	}
+
+	// reduce to common items
+	commonItems, err := reduceToCommonItems(rucksacks)
+	if err != nil {
+		return "", fmt.Errorf("unable to solve: %w", err)
+	}
+
+	// score the items
+	scores, err := scoreRucksackItems(commonItems)
+	if err != nil {
+		return "", fmt.Errorf("unable to solve: %w", err)
+	}
+
+	// sum them
+	total := sum(scores)
+
+	return fmt.Sprintf("%d", total), nil
+}
+
+func scoreRucksackItems(commonItems []rune) (scores []int, err error) {
+	for i, r := range commonItems {
+		s, err := scoreRucksackItem(r)
+		if err != nil {
+			return nil, fmt.Errorf("unable to score rucksack item %d: %w", i, err)
+		}
+		scores = append(scores, s)
+	}
+
+	return
+}
+
+var ErrNoScoreMappedForItem = fmt.Errorf("no score mapped for item")
+
+func scoreRucksackItem(r rune) (score int, err error) {
+	if r >= 'a' && r <= 'z' {
+		distance := r - 'a'
+		score = 1 + int(distance)
+		return score, nil
+	} else if r >= 'A' && r <= 'Z' {
+		distance := r - 'A'
+		score = 27 + int(distance)
+		return score, nil
+	}
+
+	return score, fmt.Errorf("unable to score %#v: %w", r, ErrNoScoreMappedForItem)
+}
+
+func reduceToCommonItems(rucksacks []rucksack) (commonItems []rune, err error) {
+	for i, r := range rucksacks {
+		commonItem, err := reduceToCommonItem(r)
+		if err != nil {
+			return nil, fmt.Errorf("unable to reduce rucksack %d: %w", i, err)
+		}
+
+		commonItems = append(commonItems, commonItem)
+	}
+
+	return
+}
+
+var ErrNoCommonItemFound = fmt.Errorf("no common item found")
+
+func reduceToCommonItem(r rucksack) (item rune, err error) {
+	for _, item := range r.compartment1.items {
+		if contains(r.compartment2.items, item) {
+			return item, nil
+		}
+	}
+	return item, fmt.Errorf("unable to reduce to common item between %v and %v: %w", r.compartment1.items, r.compartment2.items, ErrNoCommonItemFound)
+}
+
+func contains(r []rune, item rune) bool {
+	for _, item2 := range r {
+		if item == item2 {
+			return true
+		}
+	}
+
+	return false
+}
+
+type compartment struct {
+	items []rune
+}
+
+type rucksack struct {
+	compartment1, compartment2 compartment
+}
+
+func parseRucksackLines(lines []string) (rucksacks []rucksack, err error) {
+	for i, line := range lines {
+		r, err := parseRucksackLine(line)
+		if err != nil {
+			return nil, fmt.Errorf("unable to parse rucksack line %d: %w", i, err)
+		}
+
+		rucksacks = append(rucksacks, r)
+	}
+
+	return
+}
+
+var ErrOddRucksackLength = fmt.Errorf("odd rucksack item count")
+
+func parseRucksackLine(line string) (r rucksack, err error) {
+	size := len(line)
+	compartmentSize := size / 2
+	if size != compartmentSize*2 {
+		return r, fmt.Errorf("unable to parse rucksack line with length (%d): %w", size, ErrOddRucksackLength)
+	}
+
+	r.compartment1.items = ([]rune)(line[:compartmentSize])
+	r.compartment2.items = ([]rune)(line[compartmentSize:])
+
+	return r, nil
 }
 
 func deduceMoves(outcomeMatches []RPSOutcomeMatch) ([]DecidedRPSMatch, error) {
