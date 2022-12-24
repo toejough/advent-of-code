@@ -140,40 +140,80 @@ func solve(day string, part string, text string) (string, error) {
 	return answer, nil
 }
 
+func maps[F any, T any](from []F, transform func(F) (T, error)) (to []T, err error) {
+	for i, item := range from {
+		var transformed T
+
+		transformed, err = transform(item)
+		if err != nil {
+			return nil, fmt.Errorf("could not map item %d: %w", i, err)
+		}
+
+		to = append(to, transformed)
+	}
+
+	return
+}
+
+func mapsNoErr[F any, T any](from []F, transform func(F) T) (to []T) {
+	for _, item := range from {
+		to = append(to, transform(item))
+	}
+
+	return
+}
+
 func solveDay1Part1(text string) (string, error) {
 	// split into lists of calories
 	hunks := splitNoEmpty(text, "\n\n")
-	stringLists := splitHunks(hunks)
+	stringLists := mapsNoErr(hunks, func(s string) []string {
+		return splitNoEmpty(s, "\n")
+	})
 
-	lists, err := convListsOfStringsToListsOfInts(stringLists)
+	lists, err := maps(stringLists, func(stringList []string) ([]int, error) {
+		return maps(stringList, strconv.Atoi)
+	})
 	if err != nil {
 		return "", err
 	}
 
 	// sum the lists
-	sums := sumLists(lists)
+	sums := mapsNoErr(lists, sum)
 
 	// max
-	max, err := max(sums)
-	if err != nil {
-		return "", err
+	if len(sums) == 0 {
+		return "", fmt.Errorf("unable to solve: %w", ErrNoMaxPossible)
 	}
 
+	max := reduce(sums[0], sums[1:], returnLarger)
+
 	return fmt.Sprintf("%d", max), nil
+}
+
+func returnLarger(a, b int) int {
+	if a > b {
+		return a
+	}
+
+	return b
 }
 
 func solveDay1Part2(text string) (string, error) {
 	// split into lists of calories
 	hunks := splitNoEmpty(text, "\n\n")
-	stringLists := splitHunks(hunks)
+	stringLists := mapsNoErr(hunks, func(s string) []string {
+		return splitNoEmpty(s, "\n")
+	})
 
-	lists, err := convListsOfStringsToListsOfInts(stringLists)
+	lists, err := maps(stringLists, func(stringList []string) ([]int, error) {
+		return maps(stringList, strconv.Atoi)
+	})
 	if err != nil {
 		return "", err
 	}
 
 	// sum the lists
-	sums := sumLists(lists)
+	sums := mapsNoErr(lists, sum)
 
 	// sort
 	sort.Ints(sums)
@@ -196,7 +236,7 @@ func solveDay2Part1(text string) (string, error) {
 	// split into lines
 	lines := splitNoEmpty(text, "\n")
 	// parse lines into opponent/you
-	encodedMatches, err := parseEncodedMatchLines(lines)
+	encodedMatches, err := maps(lines, parseEncodedMatchLine)
 	if err != nil {
 		return "", fmt.Errorf("unable to solve after match parsing failure: %w", err)
 	}
@@ -206,12 +246,12 @@ func solveDay2Part1(text string) (string, error) {
 		return "", fmt.Errorf("unable to solve after match decoding failure: %w", err)
 	}
 	// enhance with outcome of encounters
-	decidedMatches, err := decideMatches(matches)
+	decidedMatches, err := maps(matches, decideRPSMatch)
 	if err != nil {
 		return "", fmt.Errorf("unable to solve after match decision failure: %w", err)
 	}
 	// enhance with scores
-	scoredStrategy, err := scoreRPSMatches(decidedMatches)
+	scoredStrategy, err := maps(decidedMatches, scoreRPSMatch)
 	if err != nil {
 		return "", fmt.Errorf("unable to solve after scoring failure: %w", err)
 	}
@@ -230,22 +270,22 @@ func solveDay2Part2(text string) (string, error) {
 	// split into lines
 	lines := splitNoEmpty(text, "\n")
 	// parse lines into opponent/you
-	encodedMatches, err := parseEncodedMatchLines(lines)
+	encodedMatches, err := maps(lines, parseEncodedMatchLine)
 	if err != nil {
 		return "", fmt.Errorf("unable to solve after match parsing failure: %w", err)
 	}
 	// convert into nicer enum representation
-	decidedMatches, err := decodeMatchesAsOutcomes(encodedMatches)
+	decidedMatches, err := maps(encodedMatches, decodeMatchAsOutcome)
 	if err != nil {
 		return "", fmt.Errorf("unable to solve after match decoding failure: %w", err)
 	}
 	// enhance with roll to reach outcome
-	deducedMoves, err := deduceMoves(decidedMatches)
+	deducedMoves, err := maps(decidedMatches, deduceMove)
 	if err != nil {
 		return "", fmt.Errorf("unable to solve after match decision failure: %w", err)
 	}
 	// enhance with scores
-	scoredStrategy, err := scoreRPSMatches(deducedMoves)
+	scoredStrategy, err := maps(deducedMoves, scoreRPSMatch)
 	if err != nil {
 		return "", fmt.Errorf("unable to solve after scoring failure: %w", err)
 	}
@@ -265,19 +305,19 @@ func solveDay3Part1(text string) (string, error) {
 	lines := splitNoEmpty(text, "\n")
 
 	// parse lines into contents in compartments
-	rucksacks, err := parseRucksackLines(lines)
+	rucksacks, err := maps(lines, parseRucksackLine)
 	if err != nil {
 		return "", fmt.Errorf("unable to solve: %w", err)
 	}
 
 	// reduce to common items
-	commonItems, err := reduceToCommonItems(rucksacks)
+	commonItems, err := maps(rucksacks, identifyCommonItem)
 	if err != nil {
 		return "", fmt.Errorf("unable to solve: %w", err)
 	}
 
 	// score the items
-	scores, err := scoreRucksackItems(commonItems)
+	scores, err := maps(commonItems, scoreRucksackItem)
 	if err != nil {
 		return "", fmt.Errorf("unable to solve: %w", err)
 	}
@@ -302,24 +342,6 @@ func splitNoEmpty(s string, sep string) []string {
 
 	return noEmpty
 }
-
-func scoreRucksackItems(commonItems []rune) (scores []int, err error) {
-	for i, r := range commonItems {
-		var score int
-
-		score, err = scoreRucksackItem(r)
-		if err != nil {
-			return nil, fmt.Errorf("unable to score rucksack item %d: %w", i, err)
-		}
-
-		scores = append(scores, score)
-	}
-
-	return
-}
-
-// TODO: some kind of apply / reduce function? doing that a lot. Look at that go monads library for inspiration?
-
 func scoreRucksackItem(item rune) (score int, err error) {
 	const (
 		lowercaseStartingScore = 1
@@ -341,22 +363,7 @@ func scoreRucksackItem(item rune) (score int, err error) {
 	return score, fmt.Errorf("unable to score %#v: %w", item, ErrNoScoreMappedForItem)
 }
 
-func reduceToCommonItems(rucksacks []rucksack) (commonItems []rune, err error) {
-	for i, r := range rucksacks {
-		var commonItem rune
-
-		commonItem, err = reduceToCommonItem(r)
-		if err != nil {
-			return nil, fmt.Errorf("unable to reduce rucksack %d: %w", i, err)
-		}
-
-		commonItems = append(commonItems, commonItem)
-	}
-
-	return
-}
-
-func reduceToCommonItem(sack rucksack) (item rune, err error) {
+func identifyCommonItem(sack rucksack) (item rune, err error) {
 	for _, item := range sack.compartment1.items {
 		if contains(sack.compartment2.items, item) {
 			return item, nil
@@ -381,21 +388,6 @@ func contains(r []rune, item rune) bool {
 	return false
 }
 
-func parseRucksackLines(lines []string) (rucksacks []rucksack, err error) {
-	for i, line := range lines {
-		var sack rucksack
-
-		sack, err = parseRucksackLine(line)
-		if err != nil {
-			return nil, fmt.Errorf("unable to parse rucksack line %d: %w", i, err)
-		}
-
-		rucksacks = append(rucksacks, sack)
-	}
-
-	return
-}
-
 func parseRucksackLine(line string) (r rucksack, err error) {
 	size := len(line)
 
@@ -412,7 +404,7 @@ func parseRucksackLine(line string) (r rucksack, err error) {
 	return r, nil
 }
 
-func deduceMoves(outcomeMatches []RPSOutcomeMatch) ([]DecidedRPSMatch, error) {
+func deduceMove(match RPSOutcomeMatch) (DecidedRPSMatch, error) {
 	outcomeMap := map[RPSEnum]map[RPSOutcome]RPSEnum{
 		Rock: {
 			Lost: Scissors,
@@ -430,119 +422,92 @@ func deduceMoves(outcomeMatches []RPSOutcomeMatch) ([]DecidedRPSMatch, error) {
 			Won:  Rock,
 		},
 	}
-	decidedMatches := []DecidedRPSMatch{}
 
-	for _, match := range outcomeMatches {
-		outcomeAndMe, themOk := outcomeMap[match.Them]
-		if !themOk {
-			return nil, fmt.Errorf("unable to deduce moves with %v: %w", match.Them, ErrUnrecognizedRPSEnum)
-		}
+	outcomeAndMe, themOk := outcomeMap[match.Them]
+	if !themOk {
+		return DecidedRPSMatch{}, fmt.Errorf("unable to deduce moves with %v: %w", match.Them, ErrUnrecognizedRPSEnum)
+	}
 
-		you, outcomeOK := outcomeAndMe[match.Outcome]
-		if !outcomeOK {
-			return nil, fmt.Errorf("unable to deduce moves with %v: %w", match.Outcome, ErrNoRPSOutcomeEnumForRune)
-		}
+	you, outcomeOK := outcomeAndMe[match.Outcome]
+	if !outcomeOK {
+		return DecidedRPSMatch{}, fmt.Errorf("unable to deduce moves with %v: %w", match.Outcome, ErrNoRPSOutcomeEnumForRune)
+	}
 
-		decidedMatches = append(
-			decidedMatches,
-			DecidedRPSMatch{Them: match.Them, You: you, Outcome: match.Outcome},
+	return DecidedRPSMatch{Them: match.Them, You: you, Outcome: match.Outcome}, nil
+}
+
+func decodeMatchAsOutcome(encodedStrategy EncodedRPS) (RPSOutcomeMatch, error) {
+	rps := RPSOutcomeMatch{Them: Rock, Outcome: Lost}
+
+	switch encodedStrategy.Them {
+	case 'A':
+		rps.Them = Rock
+	case 'B':
+		rps.Them = Paper
+	case 'C':
+		rps.Them = Scissors
+	default:
+		return RPSOutcomeMatch{}, fmt.Errorf(
+			"unable to match %v to an RPS selection for them: %w",
+			encodedStrategy.Them,
+			ErrNoRPSEnumForRune,
 		)
 	}
 
-	return decidedMatches, nil
-}
-
-func decodeMatchesAsOutcomes(encodedStrategy []EncodedRPS) ([]RPSOutcomeMatch, error) {
-	decidedMatches := []RPSOutcomeMatch{}
-
-	for _, encoded := range encodedStrategy {
-		rps := RPSOutcomeMatch{Them: Rock, Outcome: Lost}
-
-		switch encoded.Them {
-		case 'A':
-			rps.Them = Rock
-		case 'B':
-			rps.Them = Paper
-		case 'C':
-			rps.Them = Scissors
-		default:
-			return nil, fmt.Errorf("unable to match %v to an RPS selection for them: %w", encoded.Them, ErrNoRPSEnumForRune)
-		}
-
-		switch encoded.You {
-		case 'X':
-			rps.Outcome = Lost
-		case 'Y':
-			rps.Outcome = Tied
-		case 'Z':
-			rps.Outcome = Won
-		default:
-			return nil, fmt.Errorf("unable to match %v to an RPS outcome for you: %w", encoded.You, ErrNoRPSOutcomeEnumForRune)
-		}
-
-		decidedMatches = append(decidedMatches, rps)
+	switch encodedStrategy.You {
+	case 'X':
+		rps.Outcome = Lost
+	case 'Y':
+		rps.Outcome = Tied
+	case 'Z':
+		rps.Outcome = Won
+	default:
+		return RPSOutcomeMatch{}, fmt.Errorf(
+			"unable to match %v to an RPS outcome for you: %w",
+			encodedStrategy.You,
+			ErrNoRPSOutcomeEnumForRune,
+		)
 	}
 
-	return decidedMatches, nil
+	return rps, nil
 }
 
-func scoreRPSMatches(outcomeMatches []DecidedRPSMatch) ([]ScoredRPS, error) {
-	scoredStrategy := []ScoredRPS{}
+func scoreRPSMatch(outcomeMatch DecidedRPSMatch) (ScoredRPS, error) {
+	score := 0
 
-	for _, evaluated := range outcomeMatches {
-		score := 0
-
-		// score on choice
-		switch evaluated.You {
-		case Rock:
-			score++
-		case Paper:
-			score += 2
-		case Scissors:
-			score += 3
-		default:
-			return nil, fmt.Errorf(
-				"unable to score the outcome of a match when you chose %v: %w",
-				evaluated.You,
-				ErrUnrecognizedRPSEnum,
-			)
-		}
-
-		// score on outcome
-		switch evaluated.Outcome {
-		case Lost:
-			score += 0
-		case Tied:
-			score += 3
-		case Won:
-			score += 6
-		default:
-			return nil, fmt.Errorf(
-				"unable to score the outcome of a match when the outcome was %v: %w",
-				evaluated.Outcome,
-				ErrUnrecognizedRPSOutcome,
-			)
-		}
-
-		scoredStrategy = append(scoredStrategy, ScoredRPS{Evaluated: evaluated, Score: score})
+	// score on choice
+	switch outcomeMatch.You {
+	case Rock:
+		score++
+	case Paper:
+		score += 2
+	case Scissors:
+		score += 3
+	default:
+		return ScoredRPS{}, fmt.Errorf(
+			"unable to score the outcome of a match when you chose %v: %w",
+			outcomeMatch.You,
+			ErrUnrecognizedRPSEnum,
+		)
 	}
 
-	return scoredStrategy, nil
-}
-
-func decideMatches(matches []RPSMatch) ([]DecidedRPSMatch, error) {
-	decidedMatches := []DecidedRPSMatch{}
-
-	for i, rps := range matches {
-		decidedMatch, err := decideRPSMatch(rps)
-		if err != nil {
-			return nil, fmt.Errorf("unable to decide matches after failure with match %d: %w", i, err)
-		}
-
-		decidedMatches = append(decidedMatches, decidedMatch)
+	// score on outcome
+	switch outcomeMatch.Outcome {
+	case Lost:
+		score += 0
+	case Tied:
+		score += 3
+	case Won:
+		score += 6
+	default:
+		return ScoredRPS{}, fmt.Errorf(
+			"unable to score the outcome of a match when the outcome was %v: %w",
+			outcomeMatch.Outcome,
+			ErrUnrecognizedRPSOutcome,
+		)
 	}
 
-	return decidedMatches, nil
+	return ScoredRPS{Evaluated: outcomeMatch, Score: score}, nil
 }
 
 func decideRPSMatch(rps RPSMatch) (DecidedRPSMatch, error) {
@@ -628,6 +593,8 @@ func decideVsScissors(you RPSEnum) (RPSOutcome, error) {
 	}
 }
 
+// TODO make these decodes just use maps.
+
 func decodeMatches(encodedStrategy []EncodedRPS) ([]RPSMatch, error) {
 	strategy := []RPSMatch{}
 
@@ -662,92 +629,24 @@ func decodeMatches(encodedStrategy []EncodedRPS) ([]RPSMatch, error) {
 	return strategy, nil
 }
 
-func parseEncodedMatchLines(lines []string) ([]EncodedRPS, error) {
-	encodedStrategy := []EncodedRPS{}
-
+func parseEncodedMatchLine(line string) (EncodedRPS, error) {
 	const runesToExpect = 3
-	for i, line := range lines {
-		if len(line) < runesToExpect {
-			return nil, fmt.Errorf("unable to parse line %d, because it only has %d runes: %w", i, len(line), ErrNotEnoughItems)
-		}
-
-		encodedStrategy = append(encodedStrategy, EncodedRPS{Them: rune(line[0]), You: rune(line[2])})
+	if len(line) < runesToExpect {
+		return EncodedRPS{}, fmt.Errorf("needed %d runes but got %d: %w", runesToExpect, len(line), ErrNotEnoughItems)
 	}
 
-	return encodedStrategy, nil
-}
-
-func max(list []int) (int, error) {
-	if len(list) == 0 {
-		return 0, ErrNoMaxPossible
-	}
-
-	max := list[0]
-	for _, value := range list[1:] {
-		if value > max {
-			max = value
-		}
-	}
-
-	return max, nil
-}
-
-func sumLists(lists [][]int) []int {
-	sums := []int{}
-
-	for _, list := range lists {
-		sums = append(sums, sum(list))
-	}
-
-	return sums
+	return EncodedRPS{Them: rune(line[0]), You: rune(line[2])}, nil
 }
 
 func sum(list []int) int {
-	sum := 0
-	for _, value := range list {
-		sum += value
-	}
-
-	return sum
+	return reduce(0, list, func(a, b int) int { return a + b })
 }
 
-func splitHunks(hunks []string) [][]string {
-	lists := [][]string{}
-
-	for _, hunk := range hunks {
-		list := splitNoEmpty(hunk, "\n")
-		lists = append(lists, list)
+func reduce[T any](initial T, toReduce []T, reducer func(a, b T) T) T {
+	result := initial
+	for _, item := range toReduce {
+		result = reducer(result, item)
 	}
 
-	return lists
-}
-
-func convListsOfStringsToListsOfInts(stringLists [][]string) ([][]int, error) {
-	lists := [][]int{}
-
-	for _, stringList := range stringLists {
-		list, err := convStringsToInts(stringList)
-		if err != nil {
-			return nil, fmt.Errorf("while converting string list '%v' to int: %w", list, err)
-		}
-
-		lists = append(lists, list)
-	}
-
-	return lists, nil
-}
-
-func convStringsToInts(stringList []string) ([]int, error) {
-	list := []int{}
-
-	for _, s := range stringList {
-		value, err := strconv.Atoi(s)
-		if err != nil {
-			return nil, fmt.Errorf("while converting string '%s' to int: %w", s, err)
-		}
-
-		list = append(list, value)
-	}
-
-	return list, nil
+	return result
 }
