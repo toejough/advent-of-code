@@ -85,6 +85,10 @@ func FuzzDay3Part1(f *testing.F) {
 	fuzzSolve(f, fuzzSolveInput{day: 3, part: 1, inputTypes: []string{"example", "puzzle"}})
 }
 
+func FuzzDay3Part2(f *testing.F) {
+	fuzzSolve(f, fuzzSolveInput{day: 3, part: 2, inputTypes: []string{"example", "puzzle"}})
+}
+
 func fuzzSolve(f *testing.F, input fuzzSolveInput) {
 	f.Helper()
 
