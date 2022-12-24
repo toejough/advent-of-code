@@ -22,6 +22,7 @@ func TestAnswers(t *testing.T) {
 		"day2-part2-example": {result: "12"},
 		"day2-part2-puzzle":  {result: "12316"},
 		"day3-part1-example": {result: "157"},
+		"day3-part1-puzzle":  {result: "8515"},
 	}
 
 	for name, tc := range tests {
@@ -81,7 +82,7 @@ func FuzzDay2Part2(f *testing.F) {
 }
 
 func FuzzDay3Part1(f *testing.F) {
-	fuzzSolve(f, fuzzSolveInput{day: 3, part: 1, inputTypes: []string{"example"}})
+	fuzzSolve(f, fuzzSolveInput{day: 3, part: 1, inputTypes: []string{"example", "puzzle"}})
 }
 
 func fuzzSolve(f *testing.F, input fuzzSolveInput) {
