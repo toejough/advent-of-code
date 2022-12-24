@@ -9,6 +9,70 @@ import (
 	"strings"
 )
 
+const (
+	Rock RPSEnum = iota
+	Paper
+	Scissors
+)
+
+const (
+	Lost RPSOutcome = iota
+	Tied
+	Won
+)
+
+var (
+	ErrMissingSolver           = fmt.Errorf("missing solver")
+	ErrNoCommonItemFound       = fmt.Errorf("no common item found")
+	ErrNoMaxPossible           = fmt.Errorf("no max possible: input list was empty")
+	ErrNoRPSEnumForRune        = fmt.Errorf("no RPS enum was found for the rune")
+	ErrNoRPSOutcomeEnumForRune = fmt.Errorf("no RPS outcome enum was found for the rune")
+	ErrNoScoreMappedForItem    = fmt.Errorf("no score mapped for item")
+	ErrNotEnoughItems          = fmt.Errorf("not enough items")
+	ErrOddRucksackLength       = fmt.Errorf("odd rucksack item count")
+	ErrUnrecognizedRPSEnum     = fmt.Errorf("unrecognized RPS enum")
+	ErrUnrecognizedRPSOutcome  = fmt.Errorf("unrecognized RPS outcome enum")
+)
+
+type (
+	RPSEnum    int
+	RPSOutcome int
+)
+
+type EncodedRPS struct {
+	Them rune
+	You  rune
+}
+
+type RPSMatch struct {
+	Them RPSEnum
+	You  RPSEnum
+}
+
+type RPSOutcomeMatch struct {
+	Them    RPSEnum
+	Outcome RPSOutcome
+}
+
+type DecidedRPSMatch struct {
+	Them    RPSEnum
+	You     RPSEnum
+	Outcome RPSOutcome
+}
+
+type ScoredRPS struct {
+	Evaluated DecidedRPSMatch
+	Score     int
+}
+
+type compartment struct {
+	items []rune
+}
+
+type rucksack struct {
+	compartment1, compartment2 compartment
+}
+
 func main() {
 	// read input
 	day := os.Args[1]
@@ -65,8 +129,6 @@ func solve(day string, part string, text string) (string, error) {
 	return answer, nil
 }
 
-var ErrMissingSolver = fmt.Errorf("missing solver")
-
 func readFileText(filename string) (string, error) {
 	bytes, err := os.ReadFile(filename)
 	if err != nil {
@@ -115,8 +177,6 @@ func solveDay1Part1(text string) (string, error) {
 	return fmt.Sprintf("%d", max), nil
 }
 
-var ErrNotEnoughItems = fmt.Errorf("not enough items")
-
 func solveDay1Part2(text string) (string, error) {
 	// split into lists of calories
 	hunks := splitNoEmpty(text, "\n\n")
@@ -145,55 +205,6 @@ func solveDay1Part2(text string) (string, error) {
 	total := sum(top3)
 
 	return fmt.Sprintf("%d", total), nil
-}
-
-var (
-	ErrNoRPSEnumForRune        = fmt.Errorf("no RPS enum was found for the rune")
-	ErrUnrecognizedRPSEnum     = fmt.Errorf("unrecognized RPS enum")
-	ErrUnrecognizedRPSOutcome  = fmt.Errorf("unrecognized RPS outcome enum")
-	ErrNoRPSOutcomeEnumForRune = fmt.Errorf("no RPS outcome enum was found for the rune")
-)
-
-type EncodedRPS struct {
-	Them rune
-	You  rune
-}
-
-type RPSEnum int
-
-const (
-	Rock RPSEnum = iota
-	Paper
-	Scissors
-)
-
-type RPSMatch struct {
-	Them RPSEnum
-	You  RPSEnum
-}
-
-type RPSOutcomeMatch struct {
-	Them    RPSEnum
-	Outcome RPSOutcome
-}
-
-type RPSOutcome int
-
-const (
-	Lost RPSOutcome = iota
-	Tied
-	Won
-)
-
-type DecidedRPSMatch struct {
-	Them    RPSEnum
-	You     RPSEnum
-	Outcome RPSOutcome
-}
-
-type ScoredRPS struct {
-	Evaluated DecidedRPSMatch
-	Score     int
 }
 
 func solveDay2Part1(text string) (string, error) {
@@ -307,8 +318,6 @@ func scoreRucksackItems(commonItems []rune) (scores []int, err error) {
 	return
 }
 
-var ErrNoScoreMappedForItem = fmt.Errorf("no score mapped for item")
-
 // TODO: some kind of apply / reduce function? doing that a lot. Look at that go monads library for inspiration?
 
 func scoreRucksackItem(item rune) (score int, err error) {
@@ -347,8 +356,6 @@ func reduceToCommonItems(rucksacks []rucksack) (commonItems []rune, err error) {
 	return
 }
 
-var ErrNoCommonItemFound = fmt.Errorf("no common item found")
-
 func reduceToCommonItem(sack rucksack) (item rune, err error) {
 	for _, item := range sack.compartment1.items {
 		if contains(sack.compartment2.items, item) {
@@ -374,14 +381,6 @@ func contains(r []rune, item rune) bool {
 	return false
 }
 
-type compartment struct {
-	items []rune
-}
-
-type rucksack struct {
-	compartment1, compartment2 compartment
-}
-
 func parseRucksackLines(lines []string) (rucksacks []rucksack, err error) {
 	for i, line := range lines {
 		var sack rucksack
@@ -396,8 +395,6 @@ func parseRucksackLines(lines []string) (rucksacks []rucksack, err error) {
 
 	return
 }
-
-var ErrOddRucksackLength = fmt.Errorf("odd rucksack item count")
 
 func parseRucksackLine(line string) (r rucksack, err error) {
 	size := len(line)
@@ -679,8 +676,6 @@ func parseEncodedMatchLines(lines []string) ([]EncodedRPS, error) {
 
 	return encodedStrategy, nil
 }
-
-var ErrNoMaxPossible = fmt.Errorf("no max possible: input list was empty")
 
 func max(list []int) (int, error) {
 	if len(list) == 0 {
