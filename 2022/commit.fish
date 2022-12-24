@@ -1,5 +1,12 @@
 #! /usr/bin/env fish
 
+# first check if there's anything to even commit
+if git diff --cached --quiet
+    echo "nothing to commit!"
+    exit 1
+end
+
+# now choose from the options
 set TYPE (gum choose "fix" "feat" "docs" "style" "refactor" "test" "dev" "revert")
 set SCOPE (gum input --placeholder "scope")
 
