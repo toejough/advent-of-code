@@ -95,6 +95,17 @@ func main() {
 	log.Printf("Answer: %s", answer)
 }
 
+func readFileText(filename string) (string, error) {
+	bytes, err := os.ReadFile(filename)
+	if err != nil {
+		return "", fmt.Errorf("couldn't read text from %s: %w", filename, err)
+	}
+
+	text := string(bytes)
+
+	return text, nil
+}
+
 func solve(day string, part string, text string) (string, error) {
 	solverMap := map[string]map[string]func(string) (string, error){
 		"day1": {
@@ -127,32 +138,6 @@ func solve(day string, part string, text string) (string, error) {
 	}
 
 	return answer, nil
-}
-
-func readFileText(filename string) (string, error) {
-	bytes, err := os.ReadFile(filename)
-	if err != nil {
-		return "", fmt.Errorf("couldn't read text from %s: %w", filename, err)
-	}
-
-	text := string(bytes)
-
-	return text, nil
-}
-
-func splitNoEmpty(s string, sep string) []string {
-	list := strings.Split(s, sep)
-	noEmpty := []string{}
-
-	for _, text := range list {
-		if len(text) == 0 {
-			continue
-		}
-
-		noEmpty = append(noEmpty, text)
-	}
-
-	return noEmpty
 }
 
 func solveDay1Part1(text string) (string, error) {
@@ -301,6 +286,21 @@ func solveDay3Part1(text string) (string, error) {
 	total := sum(scores)
 
 	return fmt.Sprintf("%d", total), nil
+}
+
+func splitNoEmpty(s string, sep string) []string {
+	list := strings.Split(s, sep)
+	noEmpty := []string{}
+
+	for _, text := range list {
+		if len(text) == 0 {
+			continue
+		}
+
+		noEmpty = append(noEmpty, text)
+	}
+
+	return noEmpty
 }
 
 func scoreRucksackItems(commonItems []rune) (scores []int, err error) {
