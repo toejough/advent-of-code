@@ -40,3 +40,4 @@ install-if-missing ag
 install-if-missing go
 install-if-missing golangci-lint
 install-if-missing mage
+install-if-missing gum
