@@ -59,65 +59,36 @@ func TestAnswers(t *testing.T) {
 	}
 }
 
+type fuzzSolveInput struct {
+	day, part  int
+	inputTypes []string
+}
+
 func FuzzDay1Part1(f *testing.F) {
-	for _, inputType := range []string{"example", "puzzle"} {
-		text, err := readFileText(fmt.Sprintf("day1-input-%s.txt", inputType))
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		f.Add(text)
-	}
-
-	f.Fuzz(func(_ *testing.T, s string) {
-		// WHEN the program is called with the input
-		_, _ = solveDay1Part1(s)
-
-		// THEN the run is expected to return just fine.
-	})
+	fuzzSolve(f, fuzzSolveInput{day: 1, part: 1, inputTypes: []string{"example", "puzzle"}})
 }
 
 func FuzzDay1Part2(f *testing.F) {
-	for _, inputType := range []string{"example", "puzzle"} {
-		text, err := readFileText(fmt.Sprintf("day1-input-%s.txt", inputType))
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		f.Add(text)
-	}
-
-	f.Fuzz(func(_ *testing.T, s string) {
-		// WHEN the program is called with the input
-		_, _ = solveDay1Part2(s)
-
-		// THEN the run is expected to return just fine.
-	})
+	fuzzSolve(f, fuzzSolveInput{day: 1, part: 2, inputTypes: []string{"example", "puzzle"}})
 }
 
 func FuzzDay2Part1(f *testing.F) {
-	for _, inputType := range []string{"example", "puzzle"} {
-		text, err := readFileText(fmt.Sprintf("day2-input-%s.txt", inputType))
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		f.Add(text)
-	}
-
-	f.Fuzz(func(_ *testing.T, s string) {
-		// WHEN the program is called with the input
-		_, _ = solveDay2Part1(s)
-
-		// THEN the run is expected to return just fine.
-	})
+	fuzzSolve(f, fuzzSolveInput{day: 2, part: 1, inputTypes: []string{"example", "puzzle"}})
 }
 
-// TODO abstract the fuzz test internals - they're all the same
-
 func FuzzDay2Part2(f *testing.F) {
-	for _, inputType := range []string{"example", "puzzle"} {
-		text, err := readFileText(fmt.Sprintf("day2-input-%s.txt", inputType))
+	fuzzSolve(f, fuzzSolveInput{day: 2, part: 2, inputTypes: []string{"example", "puzzle"}})
+}
+
+func FuzzDay3Part1(f *testing.F) {
+	fuzzSolve(f, fuzzSolveInput{day: 3, part: 1, inputTypes: []string{"example"}})
+}
+
+func fuzzSolve(f *testing.F, input fuzzSolveInput) {
+	f.Helper()
+
+	for _, inputType := range input.inputTypes {
+		text, err := readFileText(fmt.Sprintf("day%d-input-%s.txt", input.day, inputType))
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -127,8 +98,8 @@ func FuzzDay2Part2(f *testing.F) {
 
 	f.Fuzz(func(_ *testing.T, s string) {
 		// WHEN the program is called with the input
-		_, _ = solveDay2Part2(s)
+		_, _ = solve(fmt.Sprintf("%d", input.day), fmt.Sprintf("%d", input.part), s)
 
-		// THEN the run is expected to return just fine.
+		// THEN the run is expected to not panic.
 	})
 }

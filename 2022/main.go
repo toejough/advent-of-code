@@ -309,7 +309,6 @@ func scoreRucksackItems(commonItems []rune) (scores []int, err error) {
 
 var ErrNoScoreMappedForItem = fmt.Errorf("no score mapped for item")
 
-// TODO: reevaluate error best practices - fmt vs err, structured errors from go 1.20?
 // TODO: some kind of apply / reduce function? doing that a lot. Look at that go monads library for inspiration?
 
 func scoreRucksackItem(item rune) (score int, err error) {
