@@ -23,6 +23,7 @@ func TestAnswers(t *testing.T) {
 		"day2-part2-puzzle":  {result: "12316"},
 		"day3-part1-example": {result: "157"},
 		"day3-part1-puzzle":  {result: "8515"},
+		"day3-part2-example": {result: "70"},
 	}
 
 	for name, tc := range tests {

@@ -32,6 +32,7 @@ var (
 	ErrOddRucksackLength       = fmt.Errorf("odd rucksack item count")
 	ErrUnrecognizedRPSEnum     = fmt.Errorf("unrecognized RPS enum")
 	ErrUnrecognizedRPSOutcome  = fmt.Errorf("unrecognized RPS outcome enum")
+	ErrWrongNumRucksackItems   = fmt.Errorf("incorrect number of rucksack items")
 )
 
 type (
@@ -118,7 +119,7 @@ func solve(day string, part string, text string) (string, error) {
 		},
 		"day3": {
 			"part1": solveDay3Part1,
-			// "part2": solveDay3Part2,
+			"part2": solveDay3Part2,
 		},
 	}
 
@@ -326,6 +327,98 @@ func solveDay3Part1(text string) (string, error) {
 	total := sum(scores)
 
 	return fmt.Sprintf("%d", total), nil
+}
+
+func solveDay3Part2(text string) (string, error) {
+	// split into lines
+	lines := splitNoEmpty(text, "\n")
+
+	// convert lines into lists of runes
+	runeLines := mapsNoErr(lines, func(s string) []rune { return ([]rune)(s) })
+
+	// chunk into groups of three
+	const elvesInGroup = 3
+	rucksackSets := chunk(runeLines, elvesInGroup)
+
+	// find common item in each group
+	commonItems, err := maps(rucksackSets, findCommonRucksackItem)
+	if err != nil {
+		return "", fmt.Errorf("unable to solve: %w", err)
+	}
+
+	// score the items
+	scores, err := maps(commonItems, scoreRucksackItem)
+	if err != nil {
+		return "", fmt.Errorf("unable to solve: %w", err)
+	}
+
+	// sum them
+	total := sum(scores)
+
+	return fmt.Sprintf("%d", total), nil
+}
+
+func findCommonRucksackItem(chunk [][]rune) (rune, error) {
+	rucksackSets := mapsNoErr(chunk, toSet)
+	intersection := reduce(rucksackSets[0], rucksackSets[1:], intersect)
+
+	numCommonItems := len(intersection)
+
+	if numCommonItems != 1 {
+		return 0, fmt.Errorf(
+			"found %d common rucksack items, but expected 1: %w",
+			numCommonItems,
+			ErrWrongNumRucksackItems,
+		)
+	}
+
+	return intersection[0], nil
+}
+
+func intersect(first, second []rune) []rune {
+	common := []rune{}
+
+	for _, r := range first {
+		if contains(second, r) {
+			common = append(common, r)
+		}
+	}
+
+	return common
+}
+
+func toSet(list []rune) []rune {
+	set := []rune{}
+	for _, r := range list {
+		if contains(set, r) {
+			continue
+		}
+
+		set = append(set, r)
+	}
+
+	return set
+}
+
+func chunk(lines [][]rune, chunkSize int) [][][]rune {
+	chunks := [][][]rune{}
+	thisChunk := [][]rune{}
+
+	// pull each line into a new chunk up to the chunksize
+	for _, line := range lines {
+		thisChunk = append(thisChunk, line)
+		if len(thisChunk) == chunkSize {
+			chunks = append(chunks, thisChunk)
+			thisChunk = [][]rune{}
+		}
+	}
+
+	// final chunk
+	if len(thisChunk) > 0 {
+		chunks = append(chunks, thisChunk)
+	}
+
+	return chunks
 }
 
 func splitNoEmpty(s string, sep string) []string {
